@@ -14,41 +14,48 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix = "!", intents = intents)
 bot.db_session = SessionLocal
 
+async def send_login_notifications(now: str):
+    with SessionLocal() as db:
+        for guild in bot.guilds:
+            if not guild: 
+                continue
+                
+            notify_channel_id = get_botsettings(BotSettings.login_notify_channel_id, guild.id, db)
+            if not notify_channel_id:
+                print("⚠️ 尚未設定 Login_Notify_Channel_ID (請使用 /set_login_notify_channel 設定)。")
+                continue
+
+            print(f"🔍 從資料庫(ID={guild.id})讀取到通知頻道 ID: {notify_channel_id}")
+            try:
+                target_id = int(notify_channel_id)
+                channel = await bot.fetch_channel(target_id)
+            
+                msg = f"🟢 **Bot 已上線！**\n時間：`{now}`"
+                await channel.send(msg)
+                print(f"✅ 上線通知已發送至頻道: {channel.name} (ID: {channel.id})")
+                
+            except ValueError:
+                print(f"❌ 通知失敗：ID '{notify_channel_id}' 不是有效的數字。")
+            except discord.NotFound:
+                print(f"❌ 通知失敗：找不到頻道 ID {notify_channel_id} (請確認 ID 正確且機器人在該伺服器)。")
+            except discord.Forbidden:
+                print("❌ 通知失敗：機器人沒有權限在該頻道發言。")
+            except Exception as e:
+                print(f"❌ 通知發送發生未知錯誤: {e}")          
+
 @bot.event
 async def on_ready():
     now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"目前登入身份 --> {bot.user}")
 
+    # 同步斜線指令
     try:
         synced = await bot.tree.sync()
         print(f"成功同步 {len(synced)} 個斜線指令！")
     except Exception as e:
         print(f"同步斜線指令失敗: {e}")
 
-    with SessionLocal() as db:
-        for guild in bot.guilds:
-            if not guild: continue
-            notify_channel_id = get_botsettings(BotSettings.login_notify_channel_id, guild.id, db)
-            if notify_channel_id: 
-                print(f"🔍 從資料庫(ID={guild.id})讀取到通知頻道 ID: {notify_channel_id}")
-                try:
-                    target_id = int(notify_channel_id)
-                    channel = await bot.fetch_channel(target_id)
-                
-                    msg = f"🟢 **Bot 已上線！**\n時間：`{now}`"
-                    await channel.send(msg)
-                    print(f"✅ 上線通知已發送至頻道: {channel.name} (ID: {channel.id})")
-                    
-                except ValueError:
-                    print(f"❌ 通知失敗：ID '{notify_channel_id}' 不是有效的數字。")
-                except discord.NotFound:
-                    print(f"❌ 通知失敗：找不到頻道 ID {notify_channel_id} (請確認 ID 正確且機器人在該伺服器)。")
-                except discord.Forbidden:
-                    print(f"❌ 通知失敗：機器人沒有權限在該頻道發言。")
-                except Exception as e:
-                    print(f"❌ 通知發送發生未知錯誤: {e}")
-            else:
-                print("⚠️ 尚未設定 Login_Notify_Channel_ID (請使用 /set_login_notify_channel 設定)。")
+    await send_login_notifications(now)
 
 # 載入指令程式檔案
 @bot.command()
@@ -111,9 +118,7 @@ if __name__ == "__main__":
     try:
         if init_db():
             asyncio.run(main())
-            pass
         else:
             print("Error: Database connection failed. Program will stop.")
     except KeyboardInterrupt:
         print("\nProgram interrupted by user. Exiting...")
-        pass
