@@ -8,7 +8,7 @@ client = AsyncOpenAI(
     api_key=OPENROUTER_API_KEY,
 )
 
-class Gmail_AI_Analyzer:
+class GmailAiAnalyzer:
     MODEL_ID = "nvidia/nemotron-3-super-120b-a12b:free" 
 
     @staticmethod
@@ -43,7 +43,7 @@ class Gmail_AI_Analyzer:
         try:
             response = await asyncio.wait_for(
                 client.chat.completions.create(
-                    model=Gmail_AI_Analyzer.MODEL_ID,
+                    model=GmailAiAnalyzer.MODEL_ID,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.1
                 ),

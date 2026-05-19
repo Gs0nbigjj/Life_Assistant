@@ -26,6 +26,7 @@ class SafeButton(ui.Button):
         await self.do_action(interaction)
 
     async def do_action(self, interaction: discord.Interaction):
+        """暫時擱置"""
         pass
 
 class ValidatedModal(ui.Modal):
@@ -44,7 +45,7 @@ class ValidatedModal(ui.Modal):
             return
         await self.on_success(interaction)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         """
         子類別需實作：呼叫 Manager 方法。
         成功請回傳 None，失敗請回傳 錯誤訊息字串。

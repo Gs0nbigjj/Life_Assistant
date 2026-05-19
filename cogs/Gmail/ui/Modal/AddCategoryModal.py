@@ -18,7 +18,7 @@ class AddCategoryModal(ValidatedModal, title="✨ 新增郵件分類"):
         self.user_id = user_id
         self.success_msg = ""
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         """
         執行資料庫寫入。
         父類別規定：成功回傳 None，失敗回傳錯誤字串。

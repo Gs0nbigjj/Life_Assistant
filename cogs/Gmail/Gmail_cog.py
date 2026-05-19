@@ -1,6 +1,6 @@
 from discord.ext import commands, tasks
 from cogs.Gmail.utils import EmailDatabaseManager, EmailTools
-from cogs.Gmail.utils import Gmail_AI_Analyzer
+from cogs.Gmail.utils import GmailAiAnalyzer
 from database.models import EmailConfig
 
 class Gmail(commands.Cog):
@@ -105,7 +105,7 @@ class Gmail(commands.Cog):
         for email_info in new_emails:
             print(f"🔍 分析信件：{email_info['subject']} ...")
             
-            cat_name, summary = await Gmail_AI_Analyzer.analyze_and_classify_email(
+            cat_name, summary = await GmailAiAnalyzer.analyze_and_classify_email(
                 subject=email_info['subject'],
                 body=email_info['body'],
                 categories=user_categories

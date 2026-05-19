@@ -17,14 +17,14 @@ class DeleteCategorySelect(ui.Select):
         from cogs.Gmail.utils import EmailDatabaseManager
         success = EmailDatabaseManager.delete_category(category_id=category_id)
         
-        # 準備跳回主控台
+        # 跳回主控台
         from cogs.Gmail.ui.View.GmailDashboardView import GmailDashboardView
         embed, view = GmailDashboardView.create_ui(self.user_id)
         
-        # 🌟 無痕狀態更新：把刪除結果直接寫進主控台的簡介中
+        # 無痕狀態更新：把刪除結果直接寫進主控台的簡介中
         if success:
             embed.description = f"🗑️ **已成功刪除分類：{category_name}**\n*(附帶的信件紀錄也已清除)*\n\n" + embed.description
         else:
-            embed.description = f"❌ **刪除失敗，該分類可能已不存在。**\n\n" + embed.description
+            embed.description = "❌ **刪除失敗，該分類可能已不存在。**\n\n" + embed.description
             
         await interaction.response.edit_message(embed=embed, view=view)
