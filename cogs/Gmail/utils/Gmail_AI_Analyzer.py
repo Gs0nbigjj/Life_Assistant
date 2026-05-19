@@ -51,12 +51,12 @@ class GmailAiAnalyzer:
             )
             
             if not hasattr(response, 'choices') or not response.choices:
-                print(f"❌ [API 異常] OpenRouter 回傳了無效的格式")
+                print("❌ [API 異常] OpenRouter 回傳了無效的格式")
                 return None, "（API 回傳異常）"
                 
             message = response.choices[0].message
             if not message or not message.content:
-                print(f"❌ [API 異常] AI 回傳了空內容")
+                print("❌ [API 異常] AI 回傳了空內容")
                 return None, "（AI 回傳空內容）"
             
             raw_result = message.content.strip()
