@@ -98,7 +98,7 @@ class StockManager:
                 "target_up": w.target_up,
                 "target_down": w.target_down,
                 "last_notified_price": w.last_notified_price,
-                "last_up_date": w.last_up_date,       # 新增
+                "last_up_date": w.last_up_date,
                 "last_down_date": w.last_down_date,
             } for w in watches]
 
