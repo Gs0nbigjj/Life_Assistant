@@ -14,7 +14,24 @@ class Itinerary(commands.Cog):
         self.last_check_minute = -1
         self.check_reminders.start()
 
+    async def _fetch_notification_channel(self, settings) -> discord.TextChannel | None:
+        """處理頻道的獲取與異常捕捉"""
+        channel_id = settings.calendar_notify_channel_id if settings else None
+        if not channel_id:
+            return None
+            
+        try:
+            channel_id = int(channel_id)
+            channel = self.bot.get_channel(channel_id)
+            if not channel:
+                channel = await self.bot.fetch_channel(channel_id)
+            return channel
+        except Exception as fetch_err:
+            print(f"⚠️ 嘗試抓取頻道 {channel_id} 失敗: {fetch_err}")
+            return None
+
     async def _send_single_event_reminder(self, session, event, settings, now_tw):
+        """主要方法"""
         try:
             user = await self.bot.fetch_user(event.user_id)
             if not user: 
@@ -23,6 +40,7 @@ class Itinerary(commands.Cog):
             time_difference = event.event_time - now_tw
             is_one_hour_ahead = time_difference.total_seconds() > 1800
 
+            # 根據時間判定外觀樣式
             if is_one_hour_ahead:
                 title_text = "⏳ | 行程即將在 1 小時後開始"
                 color_theme = discord.Color.blue()
@@ -38,30 +56,22 @@ class Itinerary(commands.Cog):
                 color=color_theme
             )
             
+            # 根據隱私權限發送訊息
             if event.is_private:
                 await user.send(embed=embed)
             else:
-                channel_id = settings.calendar_notify_channel_id if settings else None
-                channel = None
-                
-                if channel_id:
-                    try:
-                        channel_id = int(channel_id)
-                        channel = self.bot.get_channel(channel_id)
-
-                        if not channel:
-                            channel = await self.bot.fetch_channel(channel_id)
-                    except Exception as fetch_err:
-                        print(f"⚠️ 嘗試抓取頻道 {channel_id} 失敗: {fetch_err}")
-
+                # 呼叫抽離出的頻道獲取方法
+                channel = await self._fetch_notification_channel(settings)
                 if channel:
                     await channel.send(content=f"{user.mention} {content_prefix}", embed=embed)
                 else:
-                    # 若找不到頻道，則備援發送私訊
+                    # 備援發送私訊
                     await user.send(content=f"⚠️ 找不到公開通知頻道，改為私訊提醒：\n{content_prefix}", embed=embed)
 
+            # 若行程時間已到則從資料庫刪除
             if not is_one_hour_ahead:
                 session.delete(event)
+                
         except Exception as e:
             print(f"❌ 發送出錯: {e}")
 

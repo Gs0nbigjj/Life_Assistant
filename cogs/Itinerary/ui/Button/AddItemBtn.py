@@ -23,7 +23,7 @@ class AddItemBtn(SafeButton):
                 await interaction.edit_original_response(embed=embed, view=view, attachments=[])
                 
         except Exception as e:
-            print(f"❌ AddItemBtn 執行失敗:")
+            print("❌ AddItemBtn 執行失敗:")
             traceback.print_exc()
             
             if self.view and hasattr(self.view, 'unlock_all'):
