@@ -4,7 +4,7 @@ from cogs.Stock.utils import get_stock_quote,StockManager,fugle_api_lock
 from cogs.Stock.stock_config import FUGLE_TOKEN
 
 class StockAddModal(ui.Modal, title="新增監控股票"):
-    symbol = ui.TextInput(label="股票代號", placeholder="例如: 2330", min_length=4, max_length=10)
+    symbol = ui.TextInput(label="股票代號", placeholder="例如: 2330, 加權指: IX001, 櫃買指: IX0043", min_length=4, max_length=10)
     shares = ui.TextInput(label="持股數量", placeholder="例如: 1000", default="0", required=False)
     total_cost = ui.TextInput(label="總投入成本 (含手續費)", placeholder="例如: 650000", default="0", required=False)
     up_percent = ui.TextInput(label="漲幅預警 (%)", placeholder="例如: 5 (代表 5%)", required=False)
