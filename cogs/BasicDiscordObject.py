@@ -23,17 +23,36 @@ class SafeButton(ui.Button):
         if isinstance(self.view, LockableView):
             await self.view.lock_all(interaction)
         
+        await self.do_action(interaction)
+
+    async def do_action(self, interaction: discord.Interaction):
+        pass
 
 class ValidatedModal(ui.Modal):
     """具備自動校驗邏輯的基礎 Modal 父類"""
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"⚠️ValidatedModal錯誤", ephemeral=True)
-        await asyncio.sleep(3)
-        try:
-            await interaction.delete_original_response()
-        except discord.NotFound:
-            pass  
-        return
+        error_msg = await self.execute_logic(interaction)
+        
+        if error_msg:
+            await interaction.response.send_message(f"⚠️ {error_msg}", ephemeral=True)
+            await asyncio.sleep(3)
+            try:
+                await interaction.delete_original_response()
+            except discord.NotFound:
+                pass  
+            return
+        await self.on_success(interaction)
 
+    async def execute_logic(self, interaction: discord.Interaction) -> str:
+        """
+        子類別需實作：呼叫 Manager 方法。
+        成功請回傳 None，失敗請回傳 錯誤訊息字串。
+        """
+        return None
 
+    async def on_success(self, interaction: discord.Interaction):
+        """
+        子類別需實作：邏輯執行成功後的 UI 處理。
+        """
+        pass
