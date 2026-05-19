@@ -40,7 +40,7 @@ class StockListView(LockableView):
                 if info and info.get('lastPrice'):
                     price = info['lastPrice']
                     pct = info['changePercent']
-                    emoji = "🔺" if pct > 0 else "🟢" if pct < 0 else "⚪"
+                    emoji = "🔴" if pct > 0 else "🟢" if pct < 0 else "⚪"
                     
                     profit_data = StockManager.calculate_profit(price, s.shares, s.total_cost)
                     

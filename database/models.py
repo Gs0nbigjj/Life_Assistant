@@ -177,6 +177,7 @@ class UserStockWatch(Base):
     # --- 狀態紀錄 ---
     last_notified_price = Column(Float, nullable=True) # 上次通知時的價格
     last_close_price = Column(Float, nullable=True)    # 昨收價 (計算今日漲跌幅用)
+    last_notified_date = Column(Date, nullable= True)
     
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
