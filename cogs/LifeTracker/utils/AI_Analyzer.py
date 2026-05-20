@@ -9,15 +9,10 @@ client = AsyncOpenAI(
 
 class AI_Analyzer:
     SUMMARY_MODEL_ID = "nvidia/nemotron-3-super-120b-a12b:free"
-    
     CLASSIFY_MODEL_ID = "deepseek/deepseek-v4-flash:free"
 
     @staticmethod
     async def analyze_lifestyle(category_name, data_content):
-        """
-        使用大模型進行週總結分析
-        """
-        # 防呆機制：如果本週完全沒有紀錄，直接回傳預設字串，不要浪費資源問 AI
         if not data_content or str(data_content).strip() in ["", "[]", "None"]:
             return "本週尚無相關紀錄，繼續保持追蹤習慣喔！"
 
@@ -34,43 +29,41 @@ class AI_Analyzer:
         try:
             response = await client.chat.completions.create(
                 model=AI_Analyzer.SUMMARY_MODEL_ID,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
+                messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
                 timeout=180.0
             )
-            
-            # 安全取值防護：避免 OpenRouter 伺服器異常回傳 None 導致崩潰
             if hasattr(response, 'choices') and response.choices:
                 content = response.choices[0].message.content
                 return content.strip() if content else "⚠️ AI 未回傳分析結果。"
             else:
                 return "⚠️ 分析服務目前忙線中，回傳格式異常。"
-                
         except Exception as e:
             print(f"❌ OpenRouter 分析失敗: {e}")
             return "⚠️ 分析服務暫時不可用。"
 
     @staticmethod
-    async def classify_consumption(item_name: str, subcat_list: list):
+    async def classify_consumption_batch(item_names: list, subcat_list: list) -> dict:
         """
-        使用小模型進行快速消費分類
+        使用小模型進行「批次」消費分類
         """
-        if not subcat_list: return "其他"
-        
-        # 🌟 同樣加上空值防護
-        if not item_name or str(item_name).strip() == "": 
-            return "其他"
+        if not item_names or not subcat_list: 
+            return {}
+
+        items_text = "\n".join([f"- {item}" for item in item_names])
+        subcats_str = ", ".join(subcat_list)
 
         prompt = f"""
-        你是一位消費紀錄分類專家。
-        使用者購買了：『{item_name}』
-        請從以下現有的標籤清單中，選擇一個最適合的分類：
-        清單：{", ".join(subcat_list)}
+        你是一位消費紀錄分類專家。請將以下購買品項分類到指定的標籤清單中。
+        標籤清單：{subcats_str}
         
-        請直接回覆該標籤名稱即可，不要有任何多餘的解釋或標點符號。
-        如果真的都不適合，請回覆「其他」。
+        品項清單：
+        {items_text}
+        
+        請嚴格按照以下格式回覆，每行一個，請直接輸出純文字，不要有任何多餘的解釋：
+        品項名稱:標籤名稱
+        
+        如果真的找不到適合的，請填寫「其他」。
         """
         
         try:
@@ -80,14 +73,29 @@ class AI_Analyzer:
                 temperature=0
             )
             
-            # 🌟 分類模型也加上安全取值防護
+            result_mapping = {}
             if hasattr(response, 'choices') and response.choices:
-                result = response.choices[0].message.content
-                if result:
-                    result = result.strip()
-                    return result if result in subcat_list else "其他"
+                result_text = response.choices[0].message.content
+                if not result_text: return {}
+                
+                for line in result_text.split('\n'):
+                    line = line.strip()
+                    if ':' in line:
+                        parts = line.split(':', 1)
+                    elif '：' in line:
+                        parts = line.split('：', 1)
+                    else:
+                        continue
+                        
+                    if len(parts) == 2:
+                        k = parts[0].strip("- *")
+                        v = parts[1].strip()
+                        if v not in subcat_list:
+                            v = "其他"
+                        result_mapping[k] = v
+                        
+            return result_mapping
             
-            return "其他"
         except Exception as e:
-            print(f"❌ AI 分類失敗: {e}")
-            return "其他"
+            print(f"❌ AI 批次分類失敗: {e}")
+            return {}
