@@ -195,7 +195,7 @@ class InvoiceCrawler:
                 self.driver.execute_script("arguments[0].click();", download_btn)
                 
                 print("🎉 CSV 下載指令已送出！等待檔案下載...")
-                time.sleep(5) 
+                time.sleep(7) 
                 
             except Exception:
                 # 找不到 SelectSizes 或下載按鈕，通常代表畫面顯示「查無資料」
