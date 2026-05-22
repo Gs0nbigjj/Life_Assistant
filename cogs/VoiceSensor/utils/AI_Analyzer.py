@@ -16,7 +16,6 @@ with open(PROMPT_PATH, 'r', encoding='utf-8') as f:
 
 class AiAnalyzer:
     MODEL_ID = "nvidia/nemotron-3-nano-30b-a3b:free"
-    #MODEL_ID = "nvidia/nemotron-3-nano-30b-a3b:free"
     @staticmethod
     async def parse_ui_action(text: str, memory=None):
         """

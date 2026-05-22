@@ -42,8 +42,8 @@ def with_db_decorator(func):
 
 # BotSettings getter
 @with_db_decorator
-def get_botsettings(column: Column, ID, db: Session=None):
-    row = db.query(column).filter(BotSettings.id == ID).first()
+def get_botsettings(column: Column, id_, db: Session=None):
+    row = db.query(column).filter(BotSettings.id == id_).first()
     
     if row is None:
         print(f"讀取 {column.key} 失敗 (資料不存在)")
@@ -55,13 +55,13 @@ def get_botsettings(column: Column, ID, db: Session=None):
 
 # BotSettings setter
 @with_db_decorator
-def set_botsettings(column: Column, value, ID, db: Session=None):
+def set_botsettings(column: Column, value, id_, db: Session=None):
     # 取得整個物件
-    obj = db.query(BotSettings).filter(BotSettings.id == ID).first()
+    obj = db.query(BotSettings).filter(BotSettings.id == id_).first()
     
     if not obj:
-        print(f"找不到 ID={ID} 的資料 自動新增一個")
-        obj = BotSettings(id=ID)
+        print(f"找不到 ID={id_} 的資料 自動新增一個")
+        obj = BotSettings(id=id_)
         db.add(obj)
 
     # 更新欄位

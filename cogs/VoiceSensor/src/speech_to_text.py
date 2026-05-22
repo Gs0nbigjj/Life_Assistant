@@ -6,7 +6,7 @@ model = WhisperModel("tiny", device="cpu", compute_type="int8")
 
 def stt_whisper(audio_bytes: bytes, prompt_text: str = ""):
     # 將資料庫的標籤作為 initial_prompt 傳入
-    segments, info = model.transcribe(
+    segments, _ = model.transcribe(
         io.BytesIO(audio_bytes), 
         beam_size=5,
         # 使用繁體中文的暗示，並帶入動態標籤

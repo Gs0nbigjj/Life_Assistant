@@ -394,7 +394,7 @@ class LifeTracker_Manager:
 
     @staticmethod
     def _process_records_stats(records: list, target_field: str) -> dict:
-        """[輔助方法] 專門負責在記憶體內跑迴圈統計、解析數值並進行格式化校正"""
+        """[輔助方法] 專門負責在記憶體內跑迴圈統計並解析數值"""
         result_dict = {}
         
         for r in records:
@@ -402,7 +402,6 @@ class LifeTracker_Manager:
             values_data = r.values if isinstance(r.values, dict) else {}
             amount = 0
             
-
             if target_field:
                 try:
                     amount = float(values_data.get(target_field, 0))
@@ -411,16 +410,26 @@ class LifeTracker_Manager:
             else:
                 amount = LifeTracker_Manager._extract_first_valid_float(values_data)
             
-            # 統計加總
             if display_name not in result_dict:
                 result_dict[display_name] = 0
             result_dict[display_name] += amount
 
-        # 格式化輸出結果（去零、四捨五入）
+        return LifeTracker_Manager._format_final_stats(result_dict)
+
+    @staticmethod
+    def _format_final_stats(result_dict: dict) -> dict:
+        """[數學輔助方法] 負責過濾小於等於 0 的數據，並進行去零與四捨五入優化"""
         final_stats = {}
+        
         for k, v in result_dict.items():
-            if v > 0:
-                final_stats[k] = int(v) if v.is_integer() else round(v, 2)
+            if v <= 0:
+                continue
+                
+            # 展開三元運算子，拉平第二個迴圈內部的認知複雜度
+            if v.is_integer():
+                final_stats[k] = int(v)
+            else:
+                final_stats[k] = round(v, 2)
                 
         return final_stats
 
