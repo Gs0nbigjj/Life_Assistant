@@ -7,6 +7,7 @@ from cogs.Gmail.ui.View.GmailDashboardView import GmailDashboardView
 from cogs.Gmail.utils import EmailDatabaseManager
 from cogs.Stock.utils import StockManager
 from cogs.Stock.ui.View.StockDashboardView import StockDashboardView
+import asyncio
             
             
 class ActionHandler:
@@ -80,27 +81,32 @@ class ActionHandler:
 
     # --- 1. 系統控制選單 ---
     async def _handle_system_start(self, message, data):
+        await asyncio.sleep(0)
         from cogs.System.ui.View.SystemStartView import SystemStartView
         embed, view = SystemStartView.create_start_ui(self.bot)
         return embed, view, "", []
 
     async def _handle_life_assistant(self, message, data):
+        await asyncio.sleep(0)
         from cogs.System.ui.View.SystemStartView import MainControlView
         embed, view = MainControlView.create_dashboard_ui(self.bot)
         return embed, view, "", []
 
     # --- 2. 記帳模組 ---
     async def _handle_life_diary(self, message, data):
+        await asyncio.sleep(0)
         from cogs.LifeTracker.ui.View import LifeDashboardView
         embed, view = LifeDashboardView.create_dashboard(self.bot, message.author.id)
         return embed, view, "", []
 
     async def _handle_create_category_empty(self, message, data):
+        await asyncio.sleep(0)
         from cogs.LifeTracker.ui.Button.SetupBtn import SetupBtn
         view = ActionHandler.get_button_view(SetupBtn(self.bot))
         return None, view, "", []
 
     async def _handle_create_category_with_data(self, message, data):
+        await asyncio.sleep(0)
         embed, view, content = None, None, ""
         property_names = ["category_name", "fields", "subcategories"]
         category_name, fields, subcategories = (data.get(x) for x in property_names)
@@ -121,6 +127,7 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_delete_category(self, message, data):
+        await asyncio.sleep(0)
         embed, view, content = None, None, ""
         name = data.get("category_name", "").strip()
         if name:
@@ -138,11 +145,13 @@ class ActionHandler:
 
     # --- 3. 行事曆模組 ---
     async def _handle_create_itinerary_empty(self, message, data):
+        await asyncio.sleep(0)
         from cogs.Itinerary.ui.View.ItineraryAddView import ItineraryAddView
         embed, view = ItineraryAddView.create_ui()
         return embed, view, "", []
 
     async def _handle_create_itinerary_with_data(self, message, data):
+        await asyncio.sleep(0)
         attachments = []
         property_names = ["description", "year", "month", "day", "hour", "minute", "is_private"]
         description, year, month, day, hour, minute, is_private = (data.get(x) for x in property_names)
@@ -170,26 +179,31 @@ class ActionHandler:
         return embed, view, content, attachments
 
     async def _handle_delete_itinerary(self, message, data):
+        await asyncio.sleep(0)
         from cogs.Itinerary.ui.View.ItineraryDeleteView import ItineraryDeleteView
         embed, view = ItineraryDeleteView.create_ui(message.author.id)
         return embed, view, "", []
 
     async def _handle_view_itinerary(self, message, data):
+        await asyncio.sleep(0)
         from cogs.Itinerary.ui.View.ItineraryDashboardView import ItineraryDashboardView
         embed, view, file = ItineraryDashboardView.create_ui(message.author.id)
         return embed, view, "", [file]
 
     # --- 4. Gmail 模組 ---
     async def _handle_gmail_home(self, message, data):
+        await asyncio.sleep(0)
         embed, view = GmailDashboardView.create_ui(message.author.id)
         return embed, view, "", []
 
     async def _handle_create_gmail_category_empty(self, message, data):
+        await asyncio.sleep(0)
         from cogs.Gmail.ui.Button.AddCategoryBtn import AddCategoryBtn
         view = ActionHandler.get_button_view(AddCategoryBtn(message.author.id))
         return None, view, "", []
 
     async def _handle_create_gmail_category_with_data(self, message, data):
+        await asyncio.sleep(0)
         embed, view, content = None, None, ""
         category_name = data.get("category_name")
         description = data.get("description")
@@ -205,6 +219,7 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_delete_gmail_category(self, message, data):
+        await asyncio.sleep(0)
         embed, view, content = None, None, ""
         category_name = data.get("category_name")
         categories = EmailDatabaseManager.get_user_categories(message.author.id)
@@ -222,11 +237,13 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_set_gmail_account_empty(self, message, data):
+        await asyncio.sleep(0)
         from cogs.Gmail.ui.Button.SetupMailBtn import SetupMailBtn
         view = ActionHandler.get_button_view(SetupMailBtn())
         return None, view, "", []
 
     async def _handle_set_gmail_account_with_data(self, message, data):
+        await asyncio.sleep(0)
         gmail_address, app_password = data.get("gmail_address"), data.get("app_password")
         from cogs.Gmail.utils import EmailTools
         clean_address = EmailTools()._extract_pure_email(gmail_address)
@@ -235,6 +252,7 @@ class ActionHandler:
         return None, None, content, []
 
     async def _handle_gmail_setup_guide(self, message, data):
+        await asyncio.sleep(0)
         from cogs.Gmail.ui.View.HelpView import HelpView
         view = HelpView(message.author.id)
         embed = view.generate_embed()
@@ -242,10 +260,12 @@ class ActionHandler:
 
     # --- 5. 股市模組 ---
     async def _handle_stock_monitor_home(self, message, data):
+        await asyncio.sleep(0)
         embed, view = StockDashboardView.create_dashboard(self.bot, message.author.id)
         return embed, view, "", []
 
     async def _handle_stock_profit_detail(self, message, data):
+        await asyncio.sleep(0)
         embed, view, content = None, None, ""
         stocks = StockManager.get_user_stocks(message.author.id)
         if not stocks:
@@ -256,11 +276,13 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_add_stock_monitor_empty(self, message, data):
+        await asyncio.sleep(0)
         from cogs.Stock.ui.Button.StockAddBtn import StockAddBtn
         view = ActionHandler.get_button_view(StockAddBtn(self.bot))
         return None, view, "", []
 
     async def _handle_add_stock_monitor_with_data(self, message, data):
+        await asyncio.sleep(0)
         embed, view, content = None, None, ""
         from cogs.Stock.ui.Modal.StockAddModal import StockAddModal
         error_msg = await StockAddModal.check(
@@ -276,6 +298,7 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_remove_stock_monitor(self, message, data):
+        await asyncio.sleep(0)
         embed, view, content = None, None, ""
         stock_code = data.get("stock_code")
         stocks = StockManager.get_user_stocks(message.author.id)
@@ -290,6 +313,7 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_quick_stock_query(self, message, data):
+        await asyncio.sleep(0)
         embed, view = None, None
         stock_code = data.get("stock_code")
         if not stock_code:
@@ -302,6 +326,7 @@ class ActionHandler:
 
     # --- 6. AI 聊天記憶模組 ---
     async def _handle_chat(self, message, data):
+        await asyncio.sleep(0)
         content = data.get("message", "")
         mem_text = data.get("memory")
         if mem_text:
