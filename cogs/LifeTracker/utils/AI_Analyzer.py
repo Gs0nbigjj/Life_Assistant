@@ -7,7 +7,7 @@ client = AsyncOpenAI(
     api_key=OPENROUTER_API_KEY,
 )
 
-class AI_Analyzer:
+class AiAnalyzer:
     SUMMARY_MODEL_ID = "nvidia/nemotron-3-super-120b-a12b:free"
     CLASSIFY_MODEL_ID = "deepseek/deepseek-v4-flash:free"
 
@@ -28,7 +28,7 @@ class AI_Analyzer:
         
         try:
             response = await client.chat.completions.create(
-                model=AI_Analyzer.SUMMARY_MODEL_ID,
+                model=AiAnalyzer.SUMMARY_MODEL_ID,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
                 timeout=180.0
@@ -68,7 +68,7 @@ class AI_Analyzer:
         
         try:
             response = await client.chat.completions.create(
-                model=AI_Analyzer.CLASSIFY_MODEL_ID,
+                model=AiAnalyzer.CLASSIFY_MODEL_ID,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0
             )

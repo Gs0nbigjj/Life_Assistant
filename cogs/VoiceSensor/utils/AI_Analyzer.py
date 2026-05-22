@@ -14,7 +14,7 @@ prompt = ""
 with open(PROMPT_PATH, 'r', encoding='utf-8') as f:
     prompt = f.read() 
 
-class AI_Analyzer:
+class AiAnalyzer:
     MODEL_ID = "nvidia/nemotron-3-nano-30b-a3b:free"
     #MODEL_ID = "nvidia/nemotron-3-nano-30b-a3b:free"
     @staticmethod
@@ -30,7 +30,7 @@ class AI_Analyzer:
         
         try:
             response = await client.chat.completions.create(
-                model=AI_Analyzer.MODEL_ID,
+                model=AiAnalyzer.MODEL_ID,
                 messages=[{"role": "user", "content": content}],
                 response_format={ "type": "json_object" }
             )

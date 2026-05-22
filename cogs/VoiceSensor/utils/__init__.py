@@ -1,5 +1,5 @@
-from .AI_Analyzer import AI_Analyzer
+from .AI_Analyzer import AiAnalyzer
 
 __all__ = [
-    "AI_Analyzer"
+    "AiAnalyzer"
 ]
