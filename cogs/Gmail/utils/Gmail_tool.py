@@ -43,21 +43,41 @@ class EmailTools:
             
         return imap_client
 
+    def _filter_new_email_ids(self, all_ids: list, last_id) -> tuple[list, str | None]:
+        """專門處理郵件 ID 的過濾與校正邏輯，降低主要函式複雜度"""
+        drift_fix_id = None
+        new_ids = []
+
+        # 衛述句：若沒給 last_id 或不是數字，直接抓最後 3 封
+        if not last_id or not str(last_id).isdigit():
+            return [str(i) for i in all_ids[-3:]], None
+
+        last_id_int = int(last_id)
+        max_id = all_ids[-1]
+        
+        # 序列號偏移校正
+        if last_id_int > max_id:
+            print(f"⚠️ [EmailTools] 序列號偏移 (舊:{last_id_int} > 新:{max_id})，僅發送校正訊號，不重複抓取！")
+            drift_fix_id = str(max_id)
+        else:
+            new_ids = [str(i) for i in all_ids if i > last_id_int]
+
+        return new_ids, drift_fix_id
+
     async def get_unread_emails(self, last_id):
-        """獲取未讀郵件"""
         if not self.user or not self.password:
             print("[EmailTools] 錯誤: 未提供帳號密碼，跳過檢查")
             return [], None
 
         imap_client = None
         results = []
-        drift_fix_id = None
 
         try:
-            # 呼叫抽離出的連線驗證方法
+            # 1. 建立連線與登入
             imap_client = await self._connect_and_login_imap()
             await imap_client.select("INBOX")
 
+            # 2. 搜尋郵件
             status, messages = await imap_client.search("ALL")
             if status != "OK" or not messages[0]:
                 return [], None
@@ -66,19 +86,10 @@ class EmailTools:
             if not all_ids:
                 return [], None
             
-            new_ids = []
-            if last_id and str(last_id).isdigit():
-                last_id_int = int(last_id)
-                max_id = all_ids[-1]
-                
-                if last_id_int > max_id:
-                    print(f"⚠️ [EmailTools] 序列號偏移 (舊:{last_id_int} > 新:{max_id})，僅發送校正訊號，不重複抓取！")
-                    drift_fix_id = str(max_id) 
-                else:
-                    new_ids = [str(i) for i in all_ids if i > last_id_int]
-            else:
-                new_ids = [str(i) for i in all_ids[-3:]]
+            # 3. 呼叫抽離出來的過濾邏輯
+            new_ids, drift_fix_id = self._filter_new_email_ids(all_ids, last_id)
 
+            # 4. 抓取新信件
             for m_id in new_ids:
                 res, data = await imap_client.fetch(m_id, "(RFC822)")
                 if res == "OK":
