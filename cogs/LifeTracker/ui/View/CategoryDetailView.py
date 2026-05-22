@@ -127,14 +127,14 @@ class CategoryDetailView(LockableView):
         
         if not records:
             embed.add_field(name="近期紀錄", value="目前還沒有任何紀錄喔！", inline=False)
-            return total_pages
+        else:
+            # 跑迴圈組裝欄位
+            for r in records:
+                val_str = " | ".join([f"{k}: {v}" for k, v in r['values'].items()])
+                embed.add_field(
+                    name=f"🏷️ [{r['sub_name']}] - {r['created_at']}",
+                    value=f"**{val_str} - {r['note']}**",
+                    inline=False
+                )
 
-        # 跑迴圈組裝欄位
-        for r in records:
-            val_str = " | ".join([f"{k}: {v}" for k, v in r['values'].items()])
-            embed.add_field(
-                name=f"🏷️ [{r['sub_name']}] - {r['created_at']}",
-                value=f"**{val_str} - {r['note']}**",
-                inline=False
-            )
         return total_pages
