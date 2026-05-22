@@ -70,7 +70,7 @@ class LifeTrackerTasks(commands.Cog):
                 # 禮貌性延遲：每次抓完一位使用者停頓 10 秒，避免對財政部伺服器造成瞬間 DDoS
                 await asyncio.sleep(10)
                 
-            print(f"🏁 [Task] 每日發票自動抓取任務結束！")
+            print("🏁 [Task] 每日發票自動抓取任務結束！")
                 
         except Exception as e:
             print(f"❌ [Task] 每日發票自動抓取任務出錯: {e}")

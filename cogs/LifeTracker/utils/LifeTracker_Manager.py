@@ -391,27 +391,30 @@ class LifeTracker_Manager:
             # 主方法只負責撈資料，沉重的計算迴圈直接抽離出去
             return LifeTracker_Manager._process_records_stats(records, target_field)
 
-    # ==================== 抽離出的獨立數據統計處理器 ====================
 
     @staticmethod
     def _process_records_stats(records: list, target_field: str) -> dict:
-        """[輔助方法] 專門負責在記憶體內跑迴圈統計、解析數值並進行格式化校正"""
+        """[輔助方法] 專門負責在記憶體內跑迴圈統計、解析數值並進行格式化校正 🟢"""
         result_dict = {}
         
         for r in records:
             display_name = r.subcat_name if r.subcat_name else "其他"
+            
+            if not isinstance(r.values, dict):
+                continue
+                
             amount = 0
             
-            # 安全檢查：確保 values 格式正確
-            if isinstance(r.values, dict):
-                if target_field and target_field in r.values:
+            if target_field:
+                # 只有當 target_field 存在且在字典中時才取值，其餘情況維持 amount = 0
+                if target_field in r.values:
                     try:
                         amount = float(r.values[target_field])
                     except (ValueError, TypeError):
                         pass 
-                elif not target_field:
-                    # 💡 呼叫另一個極度微小的私有方法，把第 5 層的迴圈也拉平
-                    amount = LifeTracker_Manager._extract_first_valid_float(r.values)
+            else:
+                # target_field 為空字串或 None 時，抽取第一個合法數值
+                amount = LifeTracker_Manager._extract_first_valid_float(r.values)
             
             if display_name not in result_dict:
                 result_dict[display_name] = 0

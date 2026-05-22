@@ -46,7 +46,7 @@ class SystemCog(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         await self.bot.wait_until_ready()
-        print(f"🚀 [System] 機器人已就緒，開始掃描各伺服器 Dashboard...")
+        print("🚀 [System] 機器人已就緒，開始掃描各伺服器 Dashboard...")
 
         settings_list = await asyncio.to_thread(SystemManager.get_all_dashboard_settings)
 
