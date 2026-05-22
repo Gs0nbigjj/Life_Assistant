@@ -22,7 +22,7 @@ class PrevPageBtn(SafeButton):
         )
         
         if len(result) == 3:
-            embed, view, file = result
+            embed, view, _ = result
         else:
             embed, view = result[0], result[1]
 
