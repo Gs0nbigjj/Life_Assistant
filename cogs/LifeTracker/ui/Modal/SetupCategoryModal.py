@@ -35,7 +35,7 @@ class SetupCategoryModal(ValidatedModal):
         self.add_item(self.subcats_input)
 
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         """💡 呼叫 Manager 執行業務邏輯校驗"""
         fields_list = [f.strip() for f in self.fields_input.value.split() if f.strip()]
         subcats_list = [s.strip() for s in self.subcats_input.value.split() if s.strip()]

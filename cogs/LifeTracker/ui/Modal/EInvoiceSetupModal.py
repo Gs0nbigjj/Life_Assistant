@@ -23,7 +23,7 @@ class EInvoiceSetupModal(ValidatedModal, title="設定發票載具帳號"):
         self.bot = bot
         self.category_id = category_id
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         phone_input = self.phone.value.strip()
 
         # 🌟 [新增] 手機號碼格式防呆驗證

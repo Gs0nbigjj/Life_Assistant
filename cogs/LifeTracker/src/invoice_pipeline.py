@@ -16,7 +16,8 @@ class InvoicePipeline:
         if os.path.exists(download_dir):
             for f in glob.glob(os.path.join(download_dir, "*.csv")):
                 try: os.remove(f)
-                except: pass
+                except Exception:
+                    pass
 
         crawler = None
         try:
@@ -44,7 +45,8 @@ class InvoicePipeline:
             # 🌟 [新增] 使用 finally 保證無論如何都會關閉瀏覽器，釋放記憶體
             if crawler and hasattr(crawler, 'driver') and crawler.driver:
                 try: crawler.driver.quit()
-                except: pass
+                except Exception:
+                    pass
 
     @staticmethod
     async def execute(user_id: int) -> tuple[bool, str]:
@@ -78,7 +80,7 @@ class InvoicePipeline:
             EInvoice_Manager.update_last_fetch_date(user_id, end_id)
             return True, f"區間 {start_id} ~ {end_id} 的發票抓取與 AI 分類已全數完成！"
             
-        except Exception as e:
+        except Exception:
             print("[InvoicePipeline 處理器錯誤]")
             traceback.print_exc()
             return False, "CSV 處理與 AI 分類時發生錯誤。"

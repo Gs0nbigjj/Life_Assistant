@@ -47,7 +47,7 @@ class InputValueModal(ValidatedModal):
             self.note_input.default = parent_view.note
         self.add_item(self.note_input)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         """💡 呼叫 Manager 進行『純數據校驗』"""
         
         temp_values = {}

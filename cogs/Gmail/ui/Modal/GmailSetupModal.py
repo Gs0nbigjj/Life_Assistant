@@ -20,7 +20,7 @@ class GmailSetupModal(ValidatedModal):
         self.add_item(self.address)
         self.add_item(self.password)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         clean_address = EmailTools()._extract_pure_email(self.address.value)
         
         self.report = EmailDatabaseManager.save_user_config(interaction.user.id, interaction.user.name, clean_address, self.password.value)

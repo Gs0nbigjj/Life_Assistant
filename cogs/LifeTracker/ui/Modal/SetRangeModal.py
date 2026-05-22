@@ -21,7 +21,7 @@ class SetRangeModal(ValidatedModal):
         )
         self.add_item(self.days_input)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         """💡 呼叫 Manager 執行業務邏輯校驗與資料寫入"""
         val = self.days_input.value.strip()
         

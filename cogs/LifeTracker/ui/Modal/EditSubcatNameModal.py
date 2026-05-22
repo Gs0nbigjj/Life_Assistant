@@ -23,7 +23,7 @@ class EditSubcatNameModal(ValidatedModal):
         )
         self.add_item(self.new_name_input)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         new_name = self.new_name_input.value.strip()
         
         success, error_msg = LifeTracker_Manager.update_subcategory_name(

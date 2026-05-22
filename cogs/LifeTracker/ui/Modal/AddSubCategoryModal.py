@@ -23,7 +23,7 @@ class AddSubCategoryModal(ValidatedModal):
         )
         self.add_item(self.subcat_names_input)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         new_names = [n.strip() for n in self.subcat_names_input.value.split() if n.strip()]
         
         success, error_msg = LifeTracker_Manager.add_subcategory(self.category_id, new_names)

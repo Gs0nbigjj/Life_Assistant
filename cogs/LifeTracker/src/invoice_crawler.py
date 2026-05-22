@@ -146,6 +146,7 @@ class InvoiceCrawler:
     def download_csv(self, start_id: str, end_id: str):
         """執行查詢、過濾與下載 CSV 的自動化流程"""
         wait = WebDriverWait(self.driver, 10)
+        JS_CLICK = "arguments[0].click();"
         
         try:
             print(f"📅 準備點擊日曆，區間: {start_id} ~ {end_id}")
@@ -154,22 +155,22 @@ class InvoiceCrawler:
             date_input = wait.until(EC.presence_of_element_located((By.ID, "dp-input-searchInvoiceDate")))
             wait.until(EC.element_to_be_clickable((By.ID, "dp-input-searchInvoiceDate")))
             
-            self.driver.execute_script("arguments[0].click();", date_input)
+            self.driver.execute_script(JS_CLICK, date_input)
             time.sleep(1)
 
             print(f"🖱️ 點擊設定起始日 ({start_id})...")
             start_element = wait.until(EC.presence_of_element_located((By.ID, start_id)))
-            self.driver.execute_script("arguments[0].click();", start_element)
+            self.driver.execute_script(JS_CLICK, start_element)
             time.sleep(0.5)
             
             print(f"🖱️ 點擊設定結束日 ({end_id})...")
             end_element = wait.until(EC.presence_of_element_located((By.ID, end_id)))
-            self.driver.execute_script("arguments[0].click();", end_element)
+            self.driver.execute_script(JS_CLICK, end_element)
             time.sleep(1)
 
             print("🔍 點擊查詢按鈕...")
             search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@title='查詢']")))
-            self.driver.execute_script("arguments[0].click();", search_btn)
+            self.driver.execute_script(JS_CLICK, search_btn)
             time.sleep(3) 
             
             try:
@@ -182,12 +183,12 @@ class InvoiceCrawler:
                 
                 print("🔄 點擊第一頁刷新...")
                 page_one_btn = short_wait.until(EC.presence_of_element_located((By.XPATH, "//a[@title='1']")))
-                self.driver.execute_script("arguments[0].click();", page_one_btn)
+                self.driver.execute_script(JS_CLICK, page_one_btn)
                 time.sleep(3) 
                 
                 print("☑️ 勾選全選...")
                 select_all_cb = short_wait.until(EC.presence_of_element_located((By.ID, "invoiceDetailAll")))
-                self.driver.execute_script("arguments[0].click();", select_all_cb)
+                self.driver.execute_script(JS_CLICK, select_all_cb)
                 time.sleep(1)
                 
                 print("⬇️ 點擊下載 CSV 檔...")
@@ -196,7 +197,7 @@ class InvoiceCrawler:
                     if not d.find_element(By.XPATH, "//button[@title='下載CSV檔']").get_attribute("disabled") 
                     else False
                 )
-                self.driver.execute_script("arguments[0].click();", download_btn)
+                self.driver.execute_script(JS_CLICK, download_btn)
                 print("🎉 CSV 下載指令已送出！等待檔案下載...")
                 
                 # 動態監控
@@ -215,7 +216,7 @@ class InvoiceCrawler:
             try:
                 print("🚪 任務完成，準備登出系統...")
                 logout_btn = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//a[@title='登出']")))
-                self.driver.execute_script("arguments[0].click();", logout_btn)
+                self.driver.execute_script(JS_CLICK, logout_btn)
                 time.sleep(2) 
                 print("✅ 成功登出，安全下線！")
             except Exception as e:
