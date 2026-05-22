@@ -31,7 +31,7 @@ class RangeSelect(ui.Select):
         select_options = []
         for d in actual_options:
             days_int = int(d)
-            label = self._format_days_label(days_int)
+            label = RangeSelect._format_days_label(days_int)
             
             # 判斷是否為預設選項
             is_default = (days_int == int(current_days)) if mode == "switch" else False
@@ -45,35 +45,35 @@ class RangeSelect(ui.Select):
 
         super().__init__(placeholder=config['placeholder'], options=select_options, row=row)
 
-        @staticmethod
-        def _format_days_label(days: int) -> str:
-            """天數換算為複合時間文字（年/月/週/天），拉平主函式複雜度 🟢"""
-            remaining_days = days
-            parts = []
+    @staticmethod
+    def _format_days_label(days: int) -> str:
+        """天數換算為複合時間文字（年/月/週/天），拉平主函式複雜度 🟢"""
+        remaining_days = days
+        parts = []
+        
+        # 計算年 (365天)
+        years = remaining_days // 365
+        if years > 0:
+            parts.append(f"{years} 年 ")
+            remaining_days %= 365
+        
+        # 計算月 (30天)
+        months = remaining_days // 30
+        if months > 0:
+            parts.append(f"{months} 個月 ")
+            remaining_days %= 30
             
-            # 計算年 (365天)
-            years = remaining_days // 365
-            if years > 0:
-                parts.append(f"{years} 年 ")
-                remaining_days %= 365
+        # 計算週 (7天)
+        weeks = remaining_days // 7
+        if weeks > 0:
+            parts.append(f"{weeks} 週 ")
+            remaining_days %= 7
             
-            # 計算月 (30天)
-            months = remaining_days // 30
-            if months > 0:
-                parts.append(f"{months} 個月 ")
-                remaining_days %= 30
-                
-            # 計算週 (7天)
-            weeks = remaining_days // 7
-            if weeks > 0:
-                parts.append(f"{weeks} 週 ")
-                remaining_days %= 7
-                
-            # 計算剩餘天數
-            if remaining_days > 0 or not parts:
-                parts.append(f"{remaining_days} 天 ")
-            
-            return "".join(parts)
+        # 計算剩餘天數
+        if remaining_days > 0 or not parts:
+            parts.append(f"{remaining_days} 天 ")
+        
+        return "".join(parts)
 
     async def callback(self, interaction: discord.Interaction):
         # 優先處理 switch 模式（衛述句：符合就執行並早退）

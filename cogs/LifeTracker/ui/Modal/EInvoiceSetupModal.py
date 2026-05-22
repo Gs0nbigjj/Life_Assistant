@@ -1,6 +1,6 @@
 import discord
 from cogs.BasicDiscordObject import ValidatedModal
-from cogs.LifeTracker.utils import EInvoice_Manager
+from cogs.LifeTracker.utils import EInvoiceManager
 from cogs.LifeTracker.LifeTracker_config import MAX_PHONE_LENGTH,MAX_PASSWORD_LENGTH
 class EInvoiceSetupModal(ValidatedModal, title="設定發票載具帳號"):
     phone = discord.ui.TextInput(
@@ -34,7 +34,7 @@ class EInvoiceSetupModal(ValidatedModal, title="設定發票載具帳號"):
             return "手機號碼格式錯誤：必須以 09 開頭！"
 
         # 通過驗證，寫入資料庫
-        success = EInvoice_Manager.save_config(
+        success = EInvoiceManager.save_config(
             user_id=interaction.user.id,
             phone=phone_input,
             raw_password=self.password.value

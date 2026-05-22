@@ -9,7 +9,7 @@ from cogs.Stock.ui.View.StockDashboardView import StockDashboardView
 class StockQueryModal(ui.Modal, title="股票快速查詢"):
     symbol = ui.TextInput(
         label="股票代號",
-        placeholder="例如: 2330",
+        placeholder="例如: 2330, 加權指: IX0001, 櫃買指: IX0043",
         min_length=4,
         max_length=6,
         required=True

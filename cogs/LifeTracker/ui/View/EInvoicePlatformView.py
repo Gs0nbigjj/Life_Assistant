@@ -1,7 +1,7 @@
 import discord
 from cogs.BasicDiscordObject import LockableView
 from cogs.LifeTracker.ui.Button import SetupEInvoiceBtn,RefreshEInvoiceBtn,BackToDetailBtn
-from cogs.LifeTracker.utils import EInvoice_Manager
+from cogs.LifeTracker.utils import EInvoiceManager
 
 class EInvoicePlatformView(LockableView):
     def __init__(self, bot, category_id: int):
@@ -15,7 +15,7 @@ class EInvoicePlatformView(LockableView):
 
     @staticmethod
     def create_ui(bot, user_id: int, category_id: int):
-        config_data = EInvoice_Manager.get_config(user_id)
+        config_data = EInvoiceManager.get_config(user_id)
 
         embed = discord.Embed(
             title="🧾 財政部電子發票整合平台",

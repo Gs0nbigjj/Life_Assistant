@@ -73,29 +73,40 @@ class AiAnalyzer:
                 temperature=0
             )
             
-            result_mapping = {}
             if hasattr(response, 'choices') and response.choices:
                 result_text = response.choices[0].message.content
-                if not result_text: return {}
-                
-                for line in result_text.split('\n'):
-                    line = line.strip()
-                    if ':' in line:
-                        parts = line.split(':', 1)
-                    elif '：' in line:
-                        parts = line.split('：', 1)
-                    else:
-                        continue
+                if result_text:
+                    return AiAnalyzer._parse_classify_response(result_text, subcat_list)
                         
-                    if len(parts) == 2:
-                        k = parts[0].strip("- *")
-                        v = parts[1].strip()
-                        if v not in subcat_list:
-                            v = "其他"
-                        result_mapping[k] = v
-                        
-            return result_mapping
+            return {}
             
         except Exception as e:
             print(f"❌ AI 批次分類失敗: {e}")
             return {}
+        
+    @staticmethod
+    def _parse_classify_response(result_text: str, subcat_list: list) -> dict:
+        """解析大模型回傳的逐行文字，並進行格式相容性與標籤防呆"""
+        result_mapping = {}
+        
+        for line in result_text.split('\n'):
+            line = line.strip()
+            
+            # 支援中英文冒號切分
+            if ':' in line:
+                parts = line.split(':', 1)
+            elif '：' in line:
+                parts = line.split('：', 1)
+            else:
+                continue
+                
+            if len(parts) == 2:
+                k = parts[0].strip("- *")
+                v = parts[1].strip()
+                
+                # 確保標籤在預期清單中，否則校正歸類為「其他」
+                if v not in subcat_list:
+                    v = "其他"
+                result_mapping[k] = v
+                
+        return result_mapping

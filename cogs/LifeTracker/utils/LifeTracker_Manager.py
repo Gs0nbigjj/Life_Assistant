@@ -15,6 +15,7 @@ from cogs.LifeTracker.LifeTracker_config import (
     MAX_TEXT_LENGTH,
     MAX_INPUT_VALUE
 )
+DATE_FORMAT = "%Y/%m/%d"
 class LifeTracker_Manager:
     
     @staticmethod
@@ -47,35 +48,12 @@ class LifeTracker_Manager:
         回傳: (bool, str_or_none) -> (是否成功, 錯誤訊息)
         """
         cat_name = cat_name.strip()
-        if not cat_name:
-            return False, "分類名稱不能為空。"
         
-        if len(cat_name) > MAX_MAINCAT_LENGTH:
-            return False, f"分類名稱「{cat_name}」過長，請限制在 {MAX_MAINCAT_LENGTH} 字內。"
+        is_valid, error_msg = LifeTracker_Manager._validate_category_inputs(cat_name, fields_list, subcats_list)
+        if not is_valid:
+            return False, error_msg
 
-        if not fields_list:
-            return False, "請至少輸入一個需要紀錄的數值項目（例如：金額）。"
-        
-        if len(fields_list) > MAX_FIELDS:
-            return False, f"數值欄位過多，最多只能設定 {MAX_FIELDS} 個。"
-            
-        if len(subcats_list) > MAX_SUBCATS:
-            return False, f"標籤數量過多，最多只能設定 {MAX_SUBCATS} 個。"
-
-        if len(fields_list) != len(set(fields_list)):
-            return False, "數值欄位名稱不能重複。"
-
-        if len(subcats_list) != len(set(subcats_list)):
-            return False, "標籤名稱不能重複。"
-
-        for field in fields_list:
-            if len(field) > MAX_FIELDS_LENGTH:
-                return False, f"數值欄位「{field}」過長，請限制在 {MAX_FIELDS_LENGTH} 字內。"
-
-        for sub in subcats_list:
-            if len(sub) > MAX_SUBCAT_LENGTH:
-                return False, f"標籤「{sub}」過長，請限制在 {MAX_SUBCAT_LENGTH} 字內。"
-
+        # 通過基礎檢查後，集中處理資料庫事務邏輯
         with SessionLocal() as db:
             existing = db.query(TrackerCategory).filter(
                 TrackerCategory.user_id == user_id,
@@ -108,6 +86,39 @@ class LifeTracker_Manager:
 
             db.commit()
             return True, None
+        
+    @staticmethod
+    def _validate_category_inputs(cat_name: str, fields_list: list[str], subcats_list: list[str]) -> tuple[bool, str | None]:
+        if not cat_name:
+            return False, "分類名稱不能為空。"
+        
+        if len(cat_name) > MAX_MAINCAT_LENGTH:
+            return False, f"分類名稱「{cat_name}」過長，請限制在 {MAX_MAINCAT_LENGTH} 字內。"
+
+        if not fields_list:
+            return False, "請至少輸入一個需要紀錄的數值項目（例如：金額）。"
+        
+        if len(fields_list) > MAX_FIELDS:
+            return False, f"數值欄位過多，最多只能設定 {MAX_FIELDS} 個。"
+            
+        if len(subcats_list) > MAX_SUBCATS:
+            return False, f"標籤數量過多，最多只能設定 {MAX_SUBCATS} 個。"
+
+        if len(fields_list) != len(set(fields_list)):
+            return False, "數值欄位名稱不能重複。"
+
+        if len(subcats_list) != len(set(subcats_list)):
+            return False, "標籤名稱不能重複。"
+
+        for field in fields_list:
+            if len(field) > MAX_FIELDS_LENGTH:
+                return False, f"數值欄位「{field}」過長，請限制在 {MAX_FIELDS_LENGTH} 字內。"
+
+        for sub in subcats_list:
+            if len(sub) > MAX_SUBCAT_LENGTH:
+                return False, f"標籤「{sub}」過長，請限制在 {MAX_SUBCAT_LENGTH} 字內。"
+                
+        return True, None
     
     @staticmethod
     @with_db_decorator
@@ -167,6 +178,7 @@ class LifeTracker_Manager:
             
             return cat_data, subcats_data
 
+    
     @staticmethod
     def get_recent_records(category_id: int, page: int = 0, limit: int = 10, range_days: int = None):
         """取得紀錄與總頁數 (支援時間區間過濾)"""
@@ -196,7 +208,7 @@ class LifeTracker_Manager:
                     "sub_name": r.subcat_name or "其他",
                     "values": r.values,
                     "note": r.note,
-                    "created_at": r.created_at.strftime("%Y/%m/%d")
+                    "created_at": r.created_at.strftime(DATE_FORMAT)
                 })
             
             return record_list, total_pages
@@ -207,8 +219,9 @@ class LifeTracker_Manager:
         專門校驗紀錄數據的合法性 (不涉及寫入)
         回傳: (bool, str_or_none)
         """
+        
         try:
-            datetime.strptime(record_time_str, "%Y/%m/%d")
+            datetime.strptime(record_time_str, DATE_FORMAT)
         except (ValueError, TypeError):
             return False, "日期格式錯誤 (應為 YYYY/MM/DD)。"
 
@@ -245,7 +258,7 @@ class LifeTracker_Manager:
 
         with SessionLocal() as db:
             now = datetime.now(TW_TZ)
-            parsed_date = datetime.strptime(record_time_str, "%Y/%m/%d")
+            parsed_date = datetime.strptime(record_time_str, DATE_FORMAT)
             final_time = parsed_date.replace(hour=now.hour, minute=now.minute, second=now.second, tzinfo=TW_TZ)
 
             snapshot_name = "其他"
@@ -365,7 +378,6 @@ class LifeTracker_Manager:
     def get_subcat_stats(category_id: int, target_field: str, range_days: int = 7) -> dict:
         """
         取得該分類下各子分類的「數值總和」。
-        如果傳入 target_field，就只加總該欄位的數值。
         """
         with SessionLocal() as db:
             now = datetime.now(TW_TZ)
@@ -376,35 +388,52 @@ class LifeTracker_Manager:
                 LifeRecord.created_at >= start_date
             ).all()
 
-            result_dict = {}
-            for r in records:
-                display_name = r.subcat_name if r.subcat_name else "其他"
-                amount = 0
-                
-                if isinstance(r.values, dict):
-                    if target_field and target_field in r.values:
-                        try:
-                            amount = float(r.values[target_field])
-                        except (ValueError, TypeError):
-                            pass 
-                    elif not target_field:
-                        for val in r.values.values():
-                            try:
-                                amount = float(val)
-                                break 
-                            except (ValueError, TypeError):
-                                continue 
-                
-                if display_name not in result_dict:
-                    result_dict[display_name] = 0
-                result_dict[display_name] += amount
+            # 主方法只負責撈資料，沉重的計算迴圈直接抽離出去
+            return LifeTracker_Manager._process_records_stats(records, target_field)
 
-            final_stats = {}
-            for k, v in result_dict.items():
-                if v > 0:
-                    final_stats[k] = int(v) if v.is_integer() else round(v, 2)
-                    
-            return final_stats
+    # ==================== 抽離出的獨立數據統計處理器 ====================
+
+    @staticmethod
+    def _process_records_stats(records: list, target_field: str) -> dict:
+        """[輔助方法] 專門負責在記憶體內跑迴圈統計、解析數值並進行格式化校正"""
+        result_dict = {}
+        
+        for r in records:
+            display_name = r.subcat_name if r.subcat_name else "其他"
+            amount = 0
+            
+            # 安全檢查：確保 values 格式正確
+            if isinstance(r.values, dict):
+                if target_field and target_field in r.values:
+                    try:
+                        amount = float(r.values[target_field])
+                    except (ValueError, TypeError):
+                        pass 
+                elif not target_field:
+                    # 💡 呼叫另一個極度微小的私有方法，把第 5 層的迴圈也拉平
+                    amount = LifeTracker_Manager._extract_first_valid_float(r.values)
+            
+            if display_name not in result_dict:
+                result_dict[display_name] = 0
+            result_dict[display_name] += amount
+
+        # 格式化輸出結果（去零、四捨五入）
+        final_stats = {}
+        for k, v in result_dict.items():
+            if v > 0:
+                final_stats[k] = int(v) if v.is_integer() else round(v, 2)
+                
+        return final_stats
+
+    @staticmethod
+    def _extract_first_valid_float(values_dict: dict) -> float:
+        """[微小輔助方法] 專門用來抽取字典中第一個可以被轉成 float 的數值。"""
+        for val in values_dict.values():
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                continue
+        return 0.0
 
     @staticmethod
     def get_records_for_analysis(category_id: int, range_type: str = "week"):

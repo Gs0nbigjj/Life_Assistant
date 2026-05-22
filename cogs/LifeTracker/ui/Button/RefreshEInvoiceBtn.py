@@ -3,7 +3,7 @@ from datetime import datetime
 from config import TW_TZ
 from cogs.BasicDiscordObject import SafeButton
 from cogs.LifeTracker.src.invoice_pipeline import InvoicePipeline
-from cogs.LifeTracker.utils.EInvoice_Manager import EInvoice_Manager
+from cogs.LifeTracker.utils.EInvoice_Manager import EInvoiceManager
 
 class RefreshEInvoiceBtn(SafeButton):
     def __init__(self, bot):
@@ -14,7 +14,7 @@ class RefreshEInvoiceBtn(SafeButton):
         # 局部引入，避免 Circular Import
         from cogs.LifeTracker.ui.View.EInvoicePlatformView import EInvoicePlatformView
 
-        config = EInvoice_Manager.get_config(interaction.user.id)
+        config = EInvoiceManager.get_config(interaction.user.id)
         if config and config.get('last_fetch_date') == datetime.now(TW_TZ).date():
             # 生成一份乾淨的 Embed (避免欄位無限疊加)
             new_embed, _ = EInvoicePlatformView.create_ui(
