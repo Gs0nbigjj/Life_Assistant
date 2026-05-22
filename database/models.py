@@ -1,11 +1,12 @@
 # database/models.py
 from sqlalchemy import Column, Integer, String, BigInteger, DateTime, ForeignKey, Boolean, Text, JSON, func, Float, Date
 from sqlalchemy.orm import declarative_base, relationship
-# from sqlalchemy.dialects.postgresql import VECTOR  # pgvector
 from datetime import datetime
 
-
 Base = declarative_base()
+
+CASCADE_DELETE_ORPHAN = "all, delete-orphan"
+USER_FK_TARGET = "users.discord_id"
 
 class BotSettings(Base):
     __tablename__ = 'bot_settings'
@@ -26,18 +27,17 @@ class User(Base):
     username = Column(String)
     created_at = Column(DateTime, default=datetime.now)
 
-    email_config = relationship("EmailConfig", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    email_categories = relationship("EmailCategory", back_populates="user", cascade="all, delete-orphan")
-    
-    calendar_events = relationship("CalendarEvent", back_populates="user", cascade="all, delete-orphan")
-
-    stocks = relationship("UserStockWatch", back_populates="user", cascade="all, delete-orphan")
-    einvoice_config = relationship("EInvoiceConfig", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    email_config = relationship("EmailConfig", back_populates="user", uselist=False, cascade=CASCADE_DELETE_ORPHAN)
+    email_categories = relationship("EmailCategory", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
+    calendar_events = relationship("CalendarEvent", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
+    stocks = relationship("UserStockWatch", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
+    einvoice_config = relationship("EInvoiceConfig", back_populates="user", uselist=False, cascade=CASCADE_DELETE_ORPHAN)
 
 class EmailConfig(Base):
     __tablename__ = 'email_configs'
 
-    user_id = Column(BigInteger, ForeignKey('users.discord_id'), primary_key=True)
+
+    user_id = Column(BigInteger, ForeignKey(USER_FK_TARGET), primary_key=True)
     
     email_address = Column(String, nullable=False)
     email_password = Column(String, nullable=False)
@@ -53,12 +53,13 @@ class EmailCategory(Base):
     __tablename__ = 'email_categories'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey('users.discord_id'))
-    name = Column(String, nullable=False)        # 分類名稱 (例如: 繳費通知)
-    description = Column(String, nullable=False) # 給 AI 判斷用的描述 (例如: 包含水電、瓦斯、電信費的帳單)
 
+    user_id = Column(BigInteger, ForeignKey(USER_FK_TARGET))
+    name = Column(String, nullable=False)        # 分類名稱 (例如: 繳費通知)
+    description = Column(String, nullable=False) # 給 AI 判斷用的描述
+    
     user = relationship("User", back_populates="email_categories")
-    emails = relationship("CategorizedEmail", back_populates="category", cascade="all, delete-orphan")
+    emails = relationship("CategorizedEmail", back_populates="category", cascade=CASCADE_DELETE_ORPHAN)
 
 class CategorizedEmail(Base):
     """被 AI 成功分類並摘要的郵件"""
@@ -68,9 +69,9 @@ class CategorizedEmail(Base):
     category_id = Column(BigInteger, ForeignKey('email_categories.id'))
     
     subject = Column(String, nullable=False)
-    ai_summary = Column(String, nullable=False) # AI 整理的 20 字簡介
-    gmail_link = Column(String, nullable=False) # Gmail 直達連結
-    received_at = Column(String, nullable=False) # 收信時間
+    ai_summary = Column(String, nullable=False) 
+    gmail_link = Column(String, nullable=False) 
+    received_at = Column(String, nullable=False) 
 
     category = relationship("EmailCategory", back_populates="emails")
 
@@ -78,7 +79,8 @@ class CalendarEvent(Base):
     __tablename__ = 'calendar_events'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey('users.discord_id'), nullable=False)
+
+    user_id = Column(BigInteger, ForeignKey(USER_FK_TARGET), nullable=False)
     description = Column(Text, nullable=True)
     event_time = Column(DateTime, nullable=False)
     is_private = Column(Boolean, default=True)
@@ -90,7 +92,8 @@ class Memory(Base):
     __tablename__ = "memories"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey('users.discord_id'), nullable=False)
+
+    user_id = Column(BigInteger, ForeignKey(USER_FK_TARGET), nullable=False)
     memory_text = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     
@@ -98,7 +101,8 @@ class TrackerCategory(Base):
     __tablename__ = 'tracker_categories'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey('users.discord_id'), nullable=False)
+
+    user_id = Column(BigInteger, ForeignKey(USER_FK_TARGET), nullable=False)
     
     name = Column(String, nullable=False)
     range_options = Column(JSON, default=lambda: [7, 30, 180, 365])
@@ -110,8 +114,8 @@ class TrackerCategory(Base):
 
     created_at = Column(DateTime, default=datetime.now)
 
-    subcategories = relationship("TrackerSubCategory", back_populates="category", cascade="all, delete-orphan")
-    records = relationship("LifeRecord", back_populates="category", cascade="all, delete-orphan")
+    subcategories = relationship("TrackerSubCategory", back_populates="category", cascade=CASCADE_DELETE_ORPHAN)
+    records = relationship("LifeRecord", back_populates="category", cascade=CASCADE_DELETE_ORPHAN)
 
 class TrackerSubCategory(Base):
     __tablename__ = 'tracker_subcategories'
@@ -127,7 +131,8 @@ class TrackerSubCategory(Base):
 class EInvoiceConfig(Base):
     __tablename__ = 'einvoice_configs'
 
-    user_id = Column(BigInteger, ForeignKey('users.discord_id'), primary_key=True)
+
+    user_id = Column(BigInteger, ForeignKey(USER_FK_TARGET), primary_key=True)
     
     phone_number = Column(String, nullable=True)
     password = Column(String, nullable=True)
@@ -140,12 +145,11 @@ class LifeRecord(Base):
     __tablename__ = 'life_records'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey('users.discord_id'), nullable=False)
+
+    user_id = Column(BigInteger, ForeignKey(USER_FK_TARGET), nullable=False)
     category_id = Column(Integer, ForeignKey('tracker_categories.id'), nullable=False)
     
-    # 保留 ID 關聯
     subcategory_id = Column(Integer, ForeignKey('tracker_subcategories.id'), nullable=True)
-    
     subcat_name = Column(String, nullable=True) 
     
     values = Column(JSON, nullable=False) 
@@ -159,26 +163,23 @@ class UserStockWatch(Base):
     __tablename__ = 'user_stock_watch'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey('users.discord_id'), nullable=False)
 
-    stock_symbol = Column(String(10), nullable=False) # 股票代碼
-    stock_name = Column(String(50), nullable=True)   # 股票名稱
+    user_id = Column(BigInteger, ForeignKey(USER_FK_TARGET), nullable=False)
+
+    stock_symbol = Column(String(10), nullable=False) 
+    stock_name = Column(String(50), nullable=True)   
     
-    # --- 投資數據核心（精確損益用） ---
-    # shares 用來算現值，total_cost 用來算損益基準
-    shares = Column(Integer, default=0)               # 持有股數 (取代 quantity)
-    total_cost = Column(Float, default=0)             # 總付出成本 (含手續費)
-    buy_price = Column(Float, nullable=True)          # 參考買入單價 (選填)
+    shares = Column(Integer, default=0)              
+    total_cost = Column(Float, default=0)            
+    buy_price = Column(Float, nullable=True)          
     
-    # --- 預警設定 ---
-    target_up = Column(Float, nullable=True)          # 漲幅預警 (例如 0.05 代表 5%)
-    target_down = Column(Float, nullable=True)        # 跌幅預警 (例如 -0.05 代表 -5%)
+    target_up = Column(Float, nullable=True)          
+    target_down = Column(Float, nullable=True)        
     
-    # --- 狀態紀錄 ---
-    last_notified_price = Column(Float, nullable=True) # 上次通知時的價格
-    last_close_price = Column(Float, nullable=True)    # 昨收價 (計算今日漲跌幅用)
-    last_up_date = Column(String, nullable=True)   # 上次漲幅通知日期
-    last_down_date = Column(String, nullable=True) # 上次跌幅通知日期
+    last_notified_price = Column(Float, nullable=True) 
+    last_close_price = Column(Float, nullable=True)    
+    last_up_date = Column(String, nullable=True)   
+    last_down_date = Column(String, nullable=True) 
     
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

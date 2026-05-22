@@ -4,7 +4,7 @@ from threading import Thread
 
 app = Flask('')
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def main():
     return '<h1>Bot is awake</h1>'
 
