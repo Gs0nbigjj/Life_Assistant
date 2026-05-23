@@ -3,7 +3,7 @@ from datetime import time, datetime
 import asyncio
 from database import SessionLocal
 from database.models import TrackerCategory, EInvoiceConfig
-from cogs.LifeTracker.utils import LifeTracker_Manager, AI_Analyzer
+from cogs.LifeTracker.utils import LifeTracker_Manager, AiAnalyzer
 from cogs.LifeTracker.src.invoice_pipeline import InvoicePipeline
 from config import TW_TZ
 
@@ -34,7 +34,7 @@ class LifeTrackerTasks(commands.Cog):
                     
                     if analysis_data:
                         try:
-                            summary = await AI_Analyzer.analyze_lifestyle(cat.name, analysis_data)
+                            summary = await AiAnalyzer.analyze_lifestyle(cat.name, analysis_data)
                             
                             cat.last_ai_analysis = summary
                             cat.analysis_updated_at = datetime.now(TW_TZ)

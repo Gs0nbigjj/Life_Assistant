@@ -47,7 +47,7 @@ class GmailAiAnalyzer:
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.1
                 ),
-                timeout=60.0
+                timeout=120.0
             )
             
             if not hasattr(response, 'choices') or not response.choices:

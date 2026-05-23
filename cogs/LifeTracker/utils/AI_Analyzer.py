@@ -9,7 +9,7 @@ client = AsyncOpenAI(
 
 class AiAnalyzer:
     SUMMARY_MODEL_ID = "nvidia/nemotron-3-super-120b-a12b:free"
-    CLASSIFY_MODEL_ID = "deepseek/deepseek-v4-flash:free"
+    CLASSIFY_MODEL_ID = "nvidia/nemotron-3-super-120b-a12b:free"
 
     @staticmethod
     async def analyze_lifestyle(category_name, data_content):

@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import asyncio
 from datetime import datetime
-from cogs.LifeTracker.utils import LifeTracker_Manager, AI_Analyzer
+from cogs.LifeTracker.utils import LifeTracker_Manager, AiAnalyzer
 from database import SessionLocal
 from database.models import TrackerCategory, TrackerSubCategory
 import time
@@ -53,7 +53,7 @@ class InvoiceProcessor:
             
         print(f"📦 整理出 {len(unique_items)} 個獨立品項，準備交由 AI 批次分類...")
         
-        ai_mapping = await AI_Analyzer.classify_consumption_batch(unique_items, subcat_names)
+        ai_mapping = await AiAnalyzer.classify_consumption_batch(unique_items, subcat_names)
         print("🤖 AI 批次分類完成！開始寫入資料庫...")
 
         for index, row in df.iterrows():
