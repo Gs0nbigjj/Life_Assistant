@@ -15,7 +15,7 @@ async def deploy_dashboard_message(bot, channel_id: int):
             print(f"⚠️ [Dashboard] 找不到頻道 ID: {channel_id}")
             return
         try:
-            await channel.purge(limit=100) 
+            await channel.purge(limit=None) 
         except Exception as e:
             print(f"⚠️ [Dashboard] 清除舊訊息失敗 (可能無權限): {e}")
 
@@ -66,3 +66,18 @@ class SystemCog(commands.Cog):
             print(f"🔄 [Dashboard] 正在伺服器 '{guild.name}' ({guild_id}) 的頻道 {channel_id} 部署介面...")
             
             asyncio.create_task(deploy_dashboard_message(self.bot, channel_id))
+
+    @app_commands.command(name="clear", description="清理當前頻道內的所有訊息")
+    @app_commands.default_permissions(manage_messages=True)
+    async def clear(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            await interaction.channel.purge(limit=None)
+            
+            await interaction.delete_original_response()
+
+        except discord.Forbidden:
+            await interaction.followup.send("❌ 我沒有權限刪除這個頻道的訊息！請檢查機器人的身分組是否有「管理訊息」權限。", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ 清理訊息時發生錯誤: {e}", ephemeral=True)
