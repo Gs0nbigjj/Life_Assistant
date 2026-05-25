@@ -18,6 +18,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select 
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoAlertPresentException
 from webdriver_manager.chrome import ChromeDriverManager
 
 class InvoiceCrawler:
@@ -233,7 +234,7 @@ class InvoiceCrawler:
                 try:
                     alert = self.driver.switch_to.alert
                     alert.accept()
-                except:
+                except NoAlertPresentException:
                     pass
 
                 logout_xpath = "//a[@title='登出' or contains(text(), '登出') or contains(., '登出')]"
