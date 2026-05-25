@@ -16,7 +16,7 @@ from cogs.LifeTracker.LifeTracker_config import (
     MAX_INPUT_VALUE
 )
 DATE_FORMAT = "%Y/%m/%d"
-class LifeTracker_Manager:
+class LifeTrackerManager:
     
     @staticmethod
     @with_db_decorator
@@ -49,7 +49,7 @@ class LifeTracker_Manager:
         """
         cat_name = cat_name.strip()
         
-        is_valid, error_msg = LifeTracker_Manager._validate_category_inputs(cat_name, fields_list, subcats_list)
+        is_valid, error_msg = LifeTrackerManager._validate_category_inputs(cat_name, fields_list, subcats_list)
         if not is_valid:
             return False, error_msg
 
@@ -145,7 +145,7 @@ class LifeTracker_Manager:
         """
         with SessionLocal() as db: 
             if with_default:
-                LifeTracker_Manager.ensure_default_consumption_category(user_id, db)
+                LifeTrackerManager.ensure_default_consumption_category(user_id, db)
             categories = db.query(TrackerCategory).filter(TrackerCategory.user_id == user_id).all()
             return categories
 
@@ -154,7 +154,7 @@ class LifeTracker_Manager:
         if (user_id is None) == (categories is None):
             raise ValueError("get_deletable_categories: 必須且只能提供 user_id 或 categories 其中一個")
         if not categories:
-            categories = LifeTracker_Manager.get_user_categories(user_id=user_id, with_default=True)
+            categories = LifeTrackerManager.get_user_categories(user_id=user_id, with_default=True)
         return [c for c in categories if c.name != "消費"]        
 
     @staticmethod
@@ -252,7 +252,7 @@ class LifeTracker_Manager:
     @staticmethod
     def add_life_record(user_id: int, category_id: int, subcat_id: int, values_dict: dict, note: str, record_time_str: str = None):
         """新增一筆生活紀錄 (包含最終校驗)"""
-        is_valid, error = LifeTracker_Manager.validate_record_data(category_id, values_dict, note, record_time_str)
+        is_valid, error = LifeTrackerManager.validate_record_data(category_id, values_dict, note, record_time_str)
         if not is_valid:
             return False, error
 
@@ -389,7 +389,7 @@ class LifeTracker_Manager:
             ).all()
 
             # 主方法只負責撈資料，沉重的計算迴圈直接抽離出去
-            return LifeTracker_Manager._process_records_stats(records, target_field)
+            return LifeTrackerManager._process_records_stats(records, target_field)
 
 
     @staticmethod
@@ -408,13 +408,13 @@ class LifeTracker_Manager:
                 except (ValueError, TypeError):
                     pass
             else:
-                amount = LifeTracker_Manager._extract_first_valid_float(values_data)
+                amount = LifeTrackerManager._extract_first_valid_float(values_data)
             
             if display_name not in result_dict:
                 result_dict[display_name] = 0
             result_dict[display_name] += amount
 
-        return LifeTracker_Manager._format_final_stats(result_dict)
+        return LifeTrackerManager._format_final_stats(result_dict)
 
     @staticmethod
     def _format_final_stats(result_dict: dict) -> dict:
@@ -562,7 +562,7 @@ class LifeTracker_Manager:
             # 2. 如果找到了就拿 ID，沒找到（例如 AI 歸類為「其他」）就給 None
             subcat_id = subcat.id if subcat else None
 
-        return LifeTracker_Manager.add_life_record(
+        return LifeTrackerManager.add_life_record(
             user_id=user_id,
             category_id=category_id,
             subcat_id=subcat_id,

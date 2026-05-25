@@ -1,7 +1,7 @@
 # cogs\LifeTracker\ui\Select\DeleteCategorySelect.py
 import discord
 from discord import ui
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 
 class DeleteCategorySelect(ui.Select):
     def __init__(self, bot, categories):
@@ -18,7 +18,7 @@ class DeleteCategorySelect(ui.Select):
 
         try:
             cat_id = int(self.values[0])
-            LifeTracker_Manager.delete_category(category_id=cat_id)
+            LifeTrackerManager.delete_category(category_id=cat_id)
             
             embed, view = DeleteCategorySelect.create_dashboard(self.bot, interaction.user.id)
             

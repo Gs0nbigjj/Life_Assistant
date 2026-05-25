@@ -3,7 +3,7 @@ from datetime import time, datetime
 import asyncio
 from database import SessionLocal
 from database.models import TrackerCategory, EInvoiceConfig
-from cogs.LifeTracker.utils import LifeTracker_Manager, AiAnalyzer
+from cogs.LifeTracker.utils import LifeTrackerManager, AiAnalyzer
 from cogs.LifeTracker.src.invoice_pipeline import InvoicePipeline
 from config import TW_TZ
 
@@ -30,7 +30,7 @@ class LifeTrackerTasks(commands.Cog):
                 categories = db.query(TrackerCategory).all()
                 
                 for cat in categories:
-                    analysis_data = LifeTracker_Manager.get_records_for_analysis(cat.id, range_type="week")
+                    analysis_data = LifeTrackerManager.get_records_for_analysis(cat.id, range_type="week")
                     
                     if analysis_data:
                         try:

@@ -1,6 +1,6 @@
 import discord
 from discord import ui
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 from cogs.BasicDiscordObject import ValidatedModal
 from cogs.LifeTracker.LifeTracker_config import (
     MAX_MAINCAT_LENGTH,
@@ -43,7 +43,7 @@ class SetupCategoryModal(ValidatedModal):
 
         # 呼叫 Manager 的靜態方法
         # 注意：我們直接在 validate_logic 執行 create，因為它包含校驗
-        success, error_msg = LifeTracker_Manager.create_category(
+        success, error_msg = LifeTrackerManager.create_category(
             user_id=interaction.user.id,
             username=interaction.user.name,
             cat_name=cat_name,

@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import asyncio
 from datetime import datetime
-from cogs.LifeTracker.utils import LifeTracker_Manager, AiAnalyzer
+from cogs.LifeTracker.utils import LifeTrackerManager, AiAnalyzer
 from database import SessionLocal
 from database.models import TrackerCategory, TrackerSubCategory
 import time
@@ -12,7 +12,7 @@ class InvoiceProcessor:
     def __init__(self, user_id: int):
         self.user_id = user_id
         self.download_path = os.path.join("cogs", "LifeTracker", "src", "downloads")
-        self.target_category_id = LifeTracker_Manager.get_consumption_category_id(user_id)
+        self.target_category_id = LifeTrackerManager.get_consumption_category_id(user_id)
 
     def get_latest_csv(self):
         files = [f for f in os.listdir(self.download_path) if f.endswith('.csv')]
@@ -69,7 +69,7 @@ class InvoiceProcessor:
 
             values_dict = {"金額": amount}
             
-            success, err = LifeTracker_Manager.add_life_record(
+            success, err = LifeTrackerManager.add_life_record(
                 user_id=self.user_id,
                 category_id=self.target_category_id,
                 subcat_id=target_subcat_id,

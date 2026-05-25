@@ -1,6 +1,6 @@
 import discord
 from discord import ui
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 
 
 class DeleteCategoryBtn(ui.Button): 
@@ -40,5 +40,5 @@ class DeleteCategoryBtn(ui.Button):
 
     @staticmethod
     def get_Btn_with_user_id(bot, user_id):
-        deletable_categories = LifeTracker_Manager.get_deletable_categories(user_id=user_id)
+        deletable_categories = LifeTrackerManager.get_deletable_categories(user_id=user_id)
         return DeleteCategoryBtn(bot, deletable_categories)

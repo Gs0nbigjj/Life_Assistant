@@ -2,7 +2,7 @@
 import discord
 from discord import ui
 from cogs.BasicDiscordObject import LockableView
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 
 class RangeSelect(ui.Select):
     def __init__(self, bot, category_id, current_days, options_list, row=None, mode="switch"):
@@ -101,7 +101,7 @@ class RangeSelect(ui.Select):
     async def _handle_switch_mode(self, interaction: discord.Interaction):
         """理切換統計區間的邏輯"""
         days = int(self.values[0])
-        LifeTracker_Manager.update_current_range(self.category_id, days)
+        LifeTrackerManager.update_current_range(self.category_id, days)
         
         from cogs.LifeTracker.ui.View.CategoryDetailView import CategoryDetailView
         embed, view, chart_file = await CategoryDetailView.create_ui(
@@ -113,7 +113,7 @@ class RangeSelect(ui.Select):
 
     async def _handle_delete_mode(self, interaction: discord.Interaction, days: int):
         """處理刪除區間選項的邏輯"""
-        success = LifeTracker_Manager.delete_range_option(self.category_id, days)
+        success = LifeTrackerManager.delete_range_option(self.category_id, days)
         
         from cogs.LifeTracker.ui.View.RangeEditView import RangeEditView
         embed, view = await RangeEditView.create_ui(self.bot, self.category_id)

@@ -1,6 +1,6 @@
 # cogs/LifeTracker/ui/Button/SubmitRecordBtn.py
 import discord
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 from cogs.BasicDiscordObject import SafeButton
 
 class SubmitRecordBtn(SafeButton): 
@@ -10,7 +10,7 @@ class SubmitRecordBtn(SafeButton):
 
     async def do_action(self, interaction: discord.Interaction):
         try:
-            success, error_msg = LifeTracker_Manager.add_life_record(
+            success, error_msg = LifeTrackerManager.add_life_record(
                 user_id=interaction.user.id,
                 category_id=self.parent_view.category_id,
                 subcat_id=self.parent_view.selected_subcat_id,

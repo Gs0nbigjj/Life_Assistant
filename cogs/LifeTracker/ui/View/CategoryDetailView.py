@@ -1,6 +1,6 @@
 import discord
 import traceback
-from cogs.LifeTracker.utils.LifeTracker_Manager import LifeTracker_Manager
+from cogs.LifeTracker.utils.LifeTracker_Manager import LifeTrackerManager
 from cogs.LifeTracker.ui.Button import (
     BackToLifeDashboardBtn, LogRecordBtn, PageBtn, 
     ManageSubcatBtn, ToggleChartBtn, ToggleListModeBtn, ToggleRangeEditBtn
@@ -50,7 +50,7 @@ class CategoryDetailView(LockableView):
     async def create_ui(bot, category_id: int, page: int = 0, field_index: int = 0, 
                         show_list: bool = False, range_days: int = None):
         try:
-            cat_info, _ = LifeTracker_Manager.get_category_details(category_id)
+            cat_info, _ = LifeTrackerManager.get_category_details(category_id)
             cat_name = cat_info['name']
         
             # 參數與變數初估
@@ -108,7 +108,7 @@ class CategoryDetailView(LockableView):
             embed.add_field(name="🪄 AI 分析服務", value="目前尚無分析紀錄，將在下週一自動產生。", inline=False)
 
         # 撈取數據與繪圖
-        stats_data = LifeTracker_Manager.get_subcat_stats(category_id, target_field, range_days=current_days)
+        stats_data = LifeTrackerManager.get_subcat_stats(category_id, target_field, range_days=current_days)
         if not stats_data:
             embed.add_field(name="目前暫無數據", value=f"在過去 {current_days} 天內沒有紀錄。", inline=False)
             return None
@@ -121,7 +121,7 @@ class CategoryDetailView(LockableView):
     @staticmethod
     async def _build_list_mode(embed: discord.Embed, category_id: int, page: int, current_days: int) -> int:
         """[輔助方法] 專門處理歷史清單模式下的分頁撈取與 Embed 欄位渲染"""
-        records, total_pages = LifeTracker_Manager.get_recent_records(
+        records, total_pages = LifeTrackerManager.get_recent_records(
             category_id, page=page, limit=10, range_days=current_days
         )
         

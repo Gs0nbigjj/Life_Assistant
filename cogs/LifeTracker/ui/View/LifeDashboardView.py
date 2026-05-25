@@ -1,6 +1,6 @@
 import discord
 from cogs.System.ui.Button import BackToMainButton
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 from cogs.LifeTracker.ui.Button.SetupBtn import SetupBtn
 from cogs.LifeTracker.ui.Button.DeleteCategoryBtn import DeleteCategoryBtn
 from cogs.LifeTracker.ui.Select.CategoryDashboardSelect import CategoryDashboardSelect
@@ -14,7 +14,7 @@ class LifeDashboardView(LockableView):
             self.add_item(CategoryDashboardSelect(self.bot, categories))
         
 
-        deletable_categories = LifeTracker_Manager.get_deletable_categories(categories=categories)
+        deletable_categories = LifeTrackerManager.get_deletable_categories(categories=categories)
         
         self.add_item(SetupBtn(self.bot, row=1))
         self.add_item(DeleteCategoryBtn(self.bot, deletable_categories, row=1))
@@ -23,7 +23,7 @@ class LifeDashboardView(LockableView):
     @staticmethod
     def create_dashboard(bot, user_id: int):
         
-        categories=LifeTracker_Manager.get_user_categories(user_id=user_id, with_default=True)
+        categories=LifeTrackerManager.get_user_categories(user_id=user_id, with_default=True)
         embed = discord.Embed(
             title="📔 生活日記",
             description="歡迎使用生活日記！你可以從下方選單快速切換分類，或是建立新分類。",

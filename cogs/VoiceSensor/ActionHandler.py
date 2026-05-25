@@ -1,5 +1,5 @@
 from database.db_utils import upsert_mem
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 import discord
 from datetime import datetime
 from config import TW_TZ
@@ -115,7 +115,7 @@ class ActionHandler:
         fields_list = [f.strip() for f in fields if f.strip()]
         subcats_list = [s.strip() for s in subcategories if s.strip()] if subcategories else []
            
-        success, error_msg = LifeTracker_Manager.create_category(
+        success, error_msg = LifeTrackerManager.create_category(
             user_id=message.author.id, username=message.author.name,
             cat_name=cat_name, fields_list=fields_list, subcats_list=subcats_list
         )
@@ -131,11 +131,11 @@ class ActionHandler:
         embed, view, content = None, None, ""
         name = data.get("category_name", "").strip()
         if name:
-            if LifeTracker_Manager.delete_category(category_name=name):
+            if LifeTrackerManager.delete_category(category_name=name):
                 from cogs.LifeTracker.ui.Select.DeleteCategorySelect import DeleteCategorySelect
                 embed, view = DeleteCategorySelect.create_dashboard(self.bot, message.author.id)
             else:
-                cats = LifeTracker_Manager.get_deletable_categories(user_id=message.author.id)
+                cats = LifeTrackerManager.get_deletable_categories(user_id=message.author.id)
                 content = f"刪除錯誤 {name} 並不存在或不可刪除\n目前可刪除目錄:\n" + "\n".join([f" - {cat.name}" for cat in cats]) if cats else f"刪除錯誤 {name} 並不存在或不可刪除\n目前無刪除目錄"
         else:
             from cogs.LifeTracker.ui.Button.DeleteCategoryBtn import DeleteCategoryBtn
