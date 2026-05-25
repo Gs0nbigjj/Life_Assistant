@@ -27,6 +27,11 @@ COPY . .
 ENV CHROME_BIN=/usr/bin/google-chrome
 ENV PORT=10000
 
-# 6. 啟動指令 (請確認你的主程式檔名是 main.py 還是 bot.py)
-# CMD ["python", "bot.py"]
-CMD bash -c "alembic upgrade head && python -m pip install -e . && python -m bot"
+# # 6. 啟動指令
+# 複製啟動腳本到容器內
+COPY start.sh /start.sh
+
+# 給予腳本執行權限
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]

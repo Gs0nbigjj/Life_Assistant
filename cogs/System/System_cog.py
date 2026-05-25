@@ -31,6 +31,7 @@ async def deploy_dashboard_message(bot, channel_id: int):
 class SystemCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.background_tasks = set()
 
     @app_commands.command(name="dashboard", description="呼叫主控台")
     async def dashboard(self, interaction: discord.Interaction):
@@ -65,7 +66,14 @@ class SystemCog(commands.Cog):
 
             print(f"🔄 [Dashboard] 正在伺服器 '{guild.name}' ({guild_id}) 的頻道 {channel_id} 部署介面...")
             
-            asyncio.create_task(deploy_dashboard_message(self.bot, channel_id))
+            # 1. 建立任務並指派給變數
+            task = asyncio.create_task(deploy_dashboard_message(self.bot, channel_id))
+            
+            # 2. 把任務丟進集合中，確保不被回收
+            self.background_tasks.add(task)
+            
+            # 3. 讓任務跑完時，自動把自己從集合中移除，釋放記憶體
+            task.add_done_callback(self.background_tasks.discard)
 
     @app_commands.command(name="clear", description="清理當前頻道內的所有訊息")
     @app_commands.default_permissions(manage_messages=True)
