@@ -137,7 +137,7 @@ class EmailTools:
         text = re.sub(r'</(p|div|li|tr)>', '\n', text, flags=re.IGNORECASE)
         text = re.sub(r'<[^>]+>', '', text)
         text = html.unescape(text)
-        text = re.sub(r'^[ \t]+|[ \t]+$', '', text, flags=re.MULTILINE)
+        text = '\n'.join([line.strip() for line in text.splitlines()])
         text = re.sub(r'\n{3,}', '\n\n', text)
         return text.strip()
 
