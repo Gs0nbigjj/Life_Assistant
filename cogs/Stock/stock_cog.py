@@ -69,10 +69,12 @@ class Stock(commands.Cog):
             info = get_stock_quote(symbol, FUGLE_TOKEN)
             
         # 衛述句防呆：若拿不到報價或價格不合法，立刻早退
-        if not info or not info.get('lastPrice'):
+        curr_price = info.get('lastPrice') or info.get('current')
+
+        if not info or not curr_price:
             return
 
-        curr_price = info['lastPrice']
+        # curr_price = info['lastPrice']
         change_pct = info['changePercent'] / 100
 
         # 2. 決定預警類型與訊息 (消滅深層的 if 嵌套)
