@@ -48,13 +48,6 @@ class StockAddModal(ui.Modal, title="新增監控股票"):
                 return "❌ 【總投入成本】不能為負數！"
         except ValueError:
             return "❌ 【總投入成本】格式錯誤！請填入正確的數字。"
-
-        """
-        if num_shares > 0 and cost_val == 0:
-            return "❌ 既然您持有股票，【總投入成本】應該大於 0。"
-        if num_shares == 0 and cost_val > 0:
-            return "❌ 持股數量為 0 時，【總投入成本】也應該為 0。若純監控請皆填 0。"
-        """
         
         up_raw = self.up_percent.value.strip().replace("%", "")
         up = None

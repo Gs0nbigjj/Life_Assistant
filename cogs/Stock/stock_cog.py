@@ -74,7 +74,6 @@ class Stock(commands.Cog):
         if not info or not curr_price:
             return
 
-        # curr_price = info['lastPrice']
         change_pct = info['changePercent'] / 100
 
         # 2. 決定預警類型與訊息 (消滅深層的 if 嵌套)
