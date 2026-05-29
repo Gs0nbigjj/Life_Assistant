@@ -1,18 +1,17 @@
 import discord
 from discord import ui
-import re
 from cogs.Stock.utils import get_stock_quote, StockManager, fugle_api_lock
 from cogs.Stock.stock_config import FUGLE_TOKEN
 
 class StockAddModal(ui.Modal, title="新增監控股票"):
-    symbol = ui.TextInput(label="股票代號", placeholder="例如: 2330 或 IX0001 (大盤)", min_length=4, max_length=10)
+    symbol = ui.TextInput(label="股票代號", placeholder="例如: 2330 (不支持指數監控)", min_length=4, max_length=10)
     shares = ui.TextInput(label="持股數量", placeholder="未持有請填 0", default="0", required=False)
     total_cost = ui.TextInput(label="總投入成本 (含手續費)", placeholder="未持有請填 0", default="0", required=False)
     up_percent = ui.TextInput(label="漲幅預警 (%)", placeholder="例如: 5 (代表 +5%)", required=False)
     down_percent = ui.TextInput(label="跌幅預警 (%)", placeholder="例如: -3 (代表 -3%)", required=False)
 
     def __init__(self, bot):
-        super().__init__()
+        super().__init__(title="新增監控股票")
         self.bot = bot
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -107,6 +106,8 @@ class StockAddModal(ui.Modal, title="新增監控股票"):
             StockManager.add_stock(user_id, user_name, data)
             return None 
             
+        except ValueError:
+            return "❌ 格式錯誤！請確保您填入的都是「正確的數字」(不要包含奇怪的符號)。"
         except Exception as e:
             print(f"❌ 新增出錯: {e}")
             return f"❌ 系統錯誤: {e}"
