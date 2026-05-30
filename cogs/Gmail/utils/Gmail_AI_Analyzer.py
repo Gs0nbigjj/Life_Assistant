@@ -30,23 +30,49 @@ class GmailAiAnalyzer:
                     print("❌ [Gmail] ！所有的 API Key 額度都已經耗盡！")
                     return False
             return True
-
-    @staticmethod
-    async def analyze_and_classify_email(subject: str, body: str, categories: list[dict]) -> tuple[str, str]:
-        raw_result = "（無回傳內容）"
         
+    @staticmethod
+    def _build_prompt(prompt_template: str, subject: str, body: str, categories: list[dict]) -> str:
         if not categories:
             categories_prompt = "目前沒有任何分類。請在 category 欄位回傳 null。"
         else:
             cat_list_str = "\n".join([f"- {c['name']} (判斷規則: {c['desc']})" for c in categories])
-            categories_prompt = f"請從以下分類中挑選最適合的一個（必須完全符合名稱，絕對不要加上任何括號）。如果都不適合，請在 category 欄位回傳 null。\n現有分類：\n{cat_list_str}"
+            categories_prompt = (
+                f"請從以下分類中挑選最適合的一個（必須完全符合名稱，絕對不要加上任何括號）。"
+                f"如果都不適合，請在 category 欄位回傳 null。\n現有分類：\n{cat_list_str}"
+            )
 
+        return prompt_template.replace("{subject}", subject)\
+                              .replace("{body}", body)\
+                              .replace("{categories_prompt}", categories_prompt)
+
+    @staticmethod
+    def _parse_ai_response(raw_result: str, categories: list[dict]) -> tuple[str, str]:
+        clean_json_str = re.sub(r"```json\n?|\n?```", "", raw_result).strip()
+        parsed_data = json.loads(clean_json_str)
+        
+        category_name = parsed_data.get("category")
+        summary = parsed_data.get("summary", "（無法生成摘要）")
+        
+        if isinstance(category_name, str):
+            category_name = category_name.strip("【】「」[]'\" ")
+        
+        valid_category_names = [c["name"] for c in categories]
+        if category_name not in valid_category_names:
+            category_name = None
+            
+        print(f"💡 [解析結果] 最終分類: {category_name} | 摘要: {summary}")
+        return category_name, summary
+
+    @staticmethod
+    async def analyze_and_classify_email(subject: str, body: str, categories: list[dict]) -> tuple[str, str]:
+        # 非同步讀取 Prompt 範本 
         path = anyio.Path(prompt_path)
         prompt_template = await path.read_text(encoding="utf-8")
 
-        prompt = prompt_template.replace("{subject}", subject)\
-                                .replace("{body}", body)\
-                                .replace("{categories_prompt}", categories_prompt)
+        # 組合最終 Prompt
+        prompt = GmailAiAnalyzer._build_prompt(prompt_template, subject, body, categories)
+        raw_result = "（無回傳內容）"
         
         while True:
             current_index = OPENROUTER_POOL.current_index
@@ -74,21 +100,8 @@ class GmailAiAnalyzer:
                 raw_result = message.content.strip()
                 print(f"🤖 [AI 原始回覆]:\n{raw_result}")
                 
-                clean_json_str = re.sub(r"```json\n?|\n?```", "", raw_result).strip()
-                parsed_data = json.loads(clean_json_str)
-                
-                category_name = parsed_data.get("category")
-                summary = parsed_data.get("summary", "（無法生成摘要）")
-                
-                if isinstance(category_name, str):
-                    category_name = category_name.strip("【】「」[]'\" ")
-                
-                valid_category_names = [c["name"] for c in categories]
-                if category_name not in valid_category_names:
-                    category_name = None
-                    
-                print(f"💡 [解析結果] 最終分類: {category_name} | 摘要: {summary}")
-                return category_name, summary
+                # 呼交輔助方法解析成果
+                return GmailAiAnalyzer._parse_ai_response(raw_result, categories)
 
             except asyncio.TimeoutError:
                 print(f"⏱️ [AI 超時] 分析信件 '{subject}' 時反應過慢，已跳過。")
@@ -100,7 +113,7 @@ class GmailAiAnalyzer:
                 
             except Exception as e:
                 error_msg = str(e)
-                if "402" in error_msg or "429" in error_msg or "insufficient_quota" in error_msg:
+                if any(err in error_msg for err in ["402", "429", "insufficient_quota"]):
                     print(f"⚠️ [Gmail分析] 第 {current_index + 1} 組 Key 失敗")
                     if await GmailAiAnalyzer.safe_switch_key(current_index):
                         continue
