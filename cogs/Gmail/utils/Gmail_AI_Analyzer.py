@@ -65,8 +65,58 @@ class GmailAiAnalyzer:
         return category_name, summary
 
     @staticmethod
+    async def _execute_api_request(client, prompt, categories, subject, raw_result) -> tuple[str, str] | str:
+        """
+        執行單次 API 請求。
+        - 成功解析：回傳 (category_name, summary)
+        - 需要切換金鑰重試：回傳字串 "SWITCH_KEY"
+        - 致命錯誤/超時：回傳 (None, 錯誤訊息)
+        """
+        try:
+            response = await asyncio.wait_for(
+                client.chat.completions.create(
+                    model=GmailAiAnalyzer.MODEL_ID,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1
+                ),
+                timeout=120.0
+            )
+            
+            if not hasattr(response, 'choices') or not response.choices:
+                print("❌ [API 異常] OpenRouter 回傳了無效的格式")
+                return None, "（API 回傳異常）"
+                
+            message = response.choices[0].message
+            if not message or not message.content:
+                print("❌ [API 異常] AI 回傳了空內容")
+                return None, "（AI 回傳空內容）"
+            
+            raw_result = message.content.strip()
+            print(f"🤖 [AI 原始回覆]:\n{raw_result}")
+            
+            return GmailAiAnalyzer._parse_ai_response(raw_result, categories)
+
+        except asyncio.TimeoutError:
+            print(f"⏱️ [AI 超時] 分析信件 '{subject}' 時反應過慢，已跳過。")
+            return None, "（AI 分析超時）"
+            
+        except json.JSONDecodeError:
+            print(f"❌ [格式錯誤] AI 回傳內容非標準 JSON: {raw_result}")
+            return None, "（摘要解析失敗）"
+            
+        except Exception as e:
+            error_msg = str(e)
+            if any(err in error_msg for err in ["402", "429", "insufficient_quota"]):
+                return "SWITCH_KEY"
+            
+            import traceback
+            traceback.print_exc()
+            print(f"❌ [AI 錯誤] 分析失敗: {e}")
+            return None, "（AI 暫時無法連線）"
+
+    @staticmethod
     async def analyze_and_classify_email(subject: str, body: str, categories: list[dict]) -> tuple[str, str]:
-        # 非同步讀取 Prompt 範本 
+        # 非同步讀取 Prompt 範本
         path = anyio.Path(prompt_path)
         prompt_template = await path.read_text(encoding="utf-8")
 
@@ -78,48 +128,15 @@ class GmailAiAnalyzer:
             current_index = OPENROUTER_POOL.current_index
             client = GmailAiAnalyzer.get_client()
 
-            try:
-                response = await asyncio.wait_for(
-                    client.chat.completions.create(
-                        model=GmailAiAnalyzer.MODEL_ID,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.1
-                    ),
-                    timeout=120.0
-                )
-                
-                if not hasattr(response, 'choices') or not response.choices:
-                    print("❌ [API 異常] OpenRouter 回傳了無效的格式")
-                    return None, "（API 回傳異常）"
-                    
-                message = response.choices[0].message
-                if not message or not message.content:
-                    print("❌ [API 異常] AI 回傳了空內容")
-                    return None, "（AI 回傳空內容）"
-                
-                raw_result = message.content.strip()
-                print(f"🤖 [AI 原始回覆]:\n{raw_result}")
-                
-                # 呼交輔助方法解析成果
-                return GmailAiAnalyzer._parse_ai_response(raw_result, categories)
-
-            except asyncio.TimeoutError:
-                print(f"⏱️ [AI 超時] 分析信件 '{subject}' 時反應過慢，已跳過。")
-                return None, "（AI 分析超時）"
-                
-            except json.JSONDecodeError:
-                print(f"❌ [格式錯誤] AI 回傳內容非標準 JSON: {raw_result}")
-                return None, "（摘要解析失敗）"
-                
-            except Exception as e:
-                error_msg = str(e)
-                if any(err in error_msg for err in ["402", "429", "insufficient_quota"]):
-                    print(f"⚠️ [Gmail分析] 第 {current_index + 1} 組 Key 失敗")
-                    if await GmailAiAnalyzer.safe_switch_key(current_index):
-                        continue
-                    return None, "（所有備用金鑰均已耗盡）"
-                else:
-                    import traceback
-                    traceback.print_exc()
-                    print(f"❌ [AI 錯誤] 分析失敗: {e}")
-                    return None, "（AI 暫時無法連線）"
+            # 交給 execute 輔助函式
+            res = await GmailAiAnalyzer._execute_api_request(client, prompt, categories, subject, raw_result)
+            
+            # 如果回傳結果是要切換金鑰，就觸發切換邏輯並 continue 繼續迴圈
+            if res == "SWITCH_KEY":
+                print(f"⚠️ [Gmail分析] 第 {current_index + 1} 組 Key 失敗")
+                if await GmailAiAnalyzer.safe_switch_key(current_index):
+                    continue
+                return None, "（所有備用金鑰均已耗盡）"
+            
+            # 其他情況（成功拿到結果或遇到致命錯誤跳過），直接回傳結果
+            return res
