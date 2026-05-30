@@ -76,39 +76,47 @@ class Stock(commands.Cog):
 
         change_pct = info['changePercent'] / 100
 
-        # 2. 決定預警類型與訊息 (消滅深層的 if 嵌套)
+        # 2. 決定預警類型與訊息
         alert_info = self._evaluate_alert_condition(watch, info, curr_price, change_pct, today_date_str)
         if not alert_info:
-            return  # 未達觸發門檻，早退
+            return  # 未達觸發門檻，或今日已發送過該類型的通知，早退
 
         alert_msg, alert_type = alert_info
 
-        # 3. 檢查最後通知價格，確認無誤後發送並寫入資料庫
-        if watch['last_notified_price'] != curr_price:
-            await self.send_dm(user_id, alert_msg)
-            StockManager.update_notified_price_and_date(
-                user_id=user_id, 
-                symbol=symbol, 
-                price=curr_price, 
-                alert_type=alert_type, 
-                date_str=today_date_str
-            )
+        # 3. 既然通過了 _evaluate_alert_condition 的日期檢查，代表今天還沒發送過此類型的通知
+        # 直接發送通知，並更新資料庫
+        await self.send_dm(user_id, alert_msg)
+        
+        StockManager.update_notified_price_and_date(
+            user_id=user_id, 
+            symbol=symbol, 
+            price=curr_price, 
+            alert_type=alert_type, 
+            date_str=today_date_str
+        )
 
     @staticmethod
     def _evaluate_alert_condition(watch: dict, info: dict, curr_price: float, change_pct: float, today_date_str: str) -> tuple[str, str] | None:
         """[微小輔助方法] 專門抽離複雜的漲跌幅與日期比對邏輯"""
         symbol = watch['stock_symbol']
-        last_up_date = watch.get('last_up_notified_date').strftime('%Y-%m-%d') if hasattr(watch.get('last_up_notified_date'), 'strftime') else watch.get('last_up_notified_date')
-        last_down_date = watch.get('last_down_notified_date').strftime('%Y-%m-%d') if hasattr(watch.get('last_down_notified_date'), 'strftime') else watch.get('last_down_notified_date')
+        
+        # 對齊 StockManager 的 Key 名稱：'last_up_date' 與 'last_down_date'
+        last_up_date = watch.get('last_up_date')
+        if hasattr(last_up_date, 'strftime'):
+            last_up_date = last_up_date.strftime('%Y-%m-%d')
+            
+        last_down_date = watch.get('last_down_date')
+        if hasattr(last_down_date, 'strftime'):
+            last_down_date = last_down_date.strftime('%Y-%m-%d')
 
         # 漲幅預警判定
         if watch['target_up'] and change_pct >= watch['target_up']:
-            if last_up_date != today_date_str:
+            if str(last_up_date) != today_date_str:
                 return f"🔴 **{info['name']} ({symbol})** 噴發！\n現價：`{curr_price}` (漲幅：`{change_pct*100:.2f}%`)", "up"
 
         # 跌幅預警判定
         if watch['target_down'] and change_pct <= watch['target_down']:
-            if last_down_date != today_date_str:
+            if str(last_down_date) != today_date_str:
                 return f"🟢 **{info['name']} ({symbol})** 下跌！\n現價：`{curr_price}` (跌幅：`{change_pct*100:.2f}%`)", "down"
 
         return None

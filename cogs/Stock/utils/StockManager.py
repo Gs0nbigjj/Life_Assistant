@@ -91,7 +91,6 @@ class StockManager:
                 (UserStockWatch.target_down.isnot(None))
             ).all()
             
-            # 🌟 轉換為字典回傳，避免 Session 關閉後發生 DetachedInstanceError
             return [{
                 "user_id": w.user_id,
                 "stock_symbol": w.stock_symbol,
@@ -114,7 +113,6 @@ class StockManager:
             if watch:
                 watch.last_notified_price = price
                 
-                # 依據是漲還是跌，將當前的 '2026-05-19' 寫入對應的資料表欄位
                 if alert_type == "up":
                     watch.last_up_date = date_str
                 elif alert_type == "down":
