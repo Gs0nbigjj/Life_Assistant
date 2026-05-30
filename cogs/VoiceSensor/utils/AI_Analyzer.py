@@ -11,7 +11,8 @@ with open(PROMPT_PATH, 'r', encoding='utf-8') as f:
     prompt = f.read() 
 
 class AiAnalyzer:
-    MODEL_ID = "nvidia/nemotron-3-nano-30b-a3b:free"
+    #MODEL_ID = "nvidia/nemotron-3-nano-30b-a3b:free"
+    MODEL_ID = "nvidia/nemotron-3-super-120b-a12b:free"
     key_lock = asyncio.Lock()
 
     @classmethod
