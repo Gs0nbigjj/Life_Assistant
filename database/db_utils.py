@@ -100,3 +100,9 @@ def upsert_mem(user_id, user_name, memory_text, db: Session=None):
         db.add(mem)
     db.commit()
     return mem
+
+@with_db_decorator
+def name_to_id(cls, name: str, db: Session=None):
+    result = db.query(cls).filter_by(name=name).first()
+    if not result: raise NameError(f"{name} 並不存在。")
+    return result

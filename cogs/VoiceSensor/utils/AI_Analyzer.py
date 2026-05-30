@@ -46,7 +46,6 @@ class AiAnalyzer:
         
         content = f"現在時間為 {now_str}\n"
         content += prompt
-        
         if memory:
             content += "\n\n上次的記憶為:\n" + memory
         content += "\n\n使用者文字為:\n" + text

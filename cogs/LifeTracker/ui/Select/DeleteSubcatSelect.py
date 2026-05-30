@@ -12,7 +12,7 @@ class DeleteSubcatSelect(ui.Select):
     async def callback(self, interaction: discord.Interaction):
         subcat_id = int(self.values[0])
         # 刪除資料庫的該標籤
-        LifeTrackerManager.delete_subcategory(subcat_id)
+        LifeTrackerManager.delete_subcategory(subcat_id=subcat_id)
 
         from cogs.LifeTracker.ui.View import ManageSubcatView
         # 重新整理畫面，讓刪除的標籤消失

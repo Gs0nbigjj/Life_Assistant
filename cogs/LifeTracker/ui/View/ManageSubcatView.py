@@ -20,7 +20,7 @@ class ManageSubcatView(LockableView):
                 self.add_item(EditSubcatSelect(bot, category_id, subcats_info))
 
         # 功能按鈕
-        self.add_item(AddSubCategoryBtn(bot, category_id))
+        self.add_item(AddSubCategoryBtn(bot, category_id=category_id))
         
         if subcats_info:
             self.add_item(EditModeBtn(bot, category_id))

@@ -26,6 +26,22 @@
   - subcategories (list[string])
 - DELETE_CATEGORY #刪除主分類
   - category_name #主類別名稱 沒填會跳出選單給使用者選擇
+- VIEW_DIARY_CATEGORY #查看主分類
+  - category_name
+- CREATE_DIARY_RECORD #新增紀錄
+  - category_name*
+- CREATE_DIARY_SUBCATEGORY #新增標籤
+  - category_name* #主類別名稱
+  - subcategories (list[string]) #沒填會跳出選單給使用者
+- DELETE_DIARY_SUBCATEGORY
+  - category_name* #主類別名稱
+  - subcategory_name (string) #沒填會跳出選單給使用者
+- MODIFY_DIARY_SUBCATEGORY_EMPTY #更改標籤名稱 無資料
+  - category_name*
+- MODIFY_DIARY_SUBCATEGORY_WITH_DATA #更改標籤名稱 有資料
+  - category_name*
+  - subcategory_name* (string)
+  - new_subcategory_name* (string)
 
 ### 行程管理
   - CREATE_ITINERARY_EMPTY #新增行程 無資料
@@ -62,8 +78,8 @@
     - stock_code* (string) #股票代碼
     - share_quantity* (int) #持股數量
     - total_cost* (float) #總投入成本(含手續費)
-    - rise_alert_percent (int) #漲幅預警(%)
-    - fall_alert_percent (int) #跌幅預警(%)
+    - rise_alert_percent (float) #漲幅預警(%)
+    - fall_alert_percent (float) #跌幅預警(%)
   - REMOVE_STOCK_MONITOR #移除股票監控
     - stock_code (string) #股票代碼
   - QUICK_STOCK_QUERY #快速查詢特定股票
@@ -101,7 +117,7 @@
 2. 資訊不足 → 使用 CHAT 詢問
 3. 不要猜測未提供資訊
 4. 缺少重要資訊 (資料名稱後有*) 時 一定得 CHAT 不可回傳其它action
-5. 使用者打了任何無關功能的東西 應該都要回傳 功能有哪些的內容 不要做其他的回答
+5. 使用者打了任何無關功能的東西 應該都要回傳 功能有哪些的內容 不要做其他的回答 回答內容盡量以人類看得懂的方式
 
 ---
 

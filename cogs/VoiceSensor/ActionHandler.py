@@ -1,4 +1,4 @@
-from database.db_utils import upsert_mem
+from database.db_utils import upsert_mem, name_to_id
 from cogs.LifeTracker.utils import LifeTrackerManager
 import discord
 from datetime import datetime
@@ -8,7 +8,8 @@ from cogs.Gmail.utils import EmailDatabaseManager
 from cogs.Stock.utils import StockManager
 from cogs.Stock.ui.View.StockDashboardView import StockDashboardView
 import asyncio
-            
+from database.models import TrackerCategory, TrackerSubCategory
+        
             
 class ActionHandler:
     def __init__(self, bot):
@@ -40,7 +41,12 @@ class ActionHandler:
             "CREATE_CATEGORY_EMPTY": self._handle_create_category_empty,
             "CREATE_CATEGORY_WITH_DATA": self._handle_create_category_with_data,
             "DELETE_CATEGORY": self._handle_delete_category,
-            
+            "VIEW_DIARY_CATEGORY": self._handle_view_diary_category,
+            "CREATE_DIARY_RECORD": self._handle_create_diary_record,
+            "CREATE_DIARY_SUBCATEGORY": self._handle_create_diary_subcategory,
+            "DELETE_DIARY_SUBCATEGORY": self._handle_delete_diary_subcategory,
+            "MODIFY_DIARY_SUBCATEGORY_EMPTY": self._handle_modify_diary_subcategory_empty,
+            "MODIFY_DIARY_SUBCATEGORY_WITH_DATA": self._handle_modify_diary_subcategory_with_data,
             # 3. 行事曆行程模組
             "CREATE_ITINERARY_EMPTY": self._handle_create_itinerary_empty,
             "CREATE_ITINERARY_WITH_DATA": self._handle_create_itinerary_with_data,
@@ -149,6 +155,97 @@ class ActionHandler:
             embed, view = btn.create_dashboard()
         return embed, view, content, []
 
+    async def _handle_view_diary_category(self, message, data):
+        from cogs.LifeTracker.ui.View import CategoryDetailView
+        category_name = data.get('category_name')
+        if category_name is None:
+            return self._handle_life_diary(message, data)
+        try: category_id = name_to_id(TrackerCategory, category_name)
+        except NameError as err_msg: return None, None, err_msg, []
+        embed, view, chart_file = await CategoryDetailView.create_ui(self.bot, category_id)
+        return embed, view, "", ([chart_file] if chart_file else [])
+
+    async def _handle_create_diary_record(self, message, data):
+        category_name = data.get('category_name')
+        try: category_id = name_to_id(TrackerCategory, category_name)
+        except NameError as err_msg: return None, None, err_msg, []
+        
+        from cogs.LifeTracker.ui.View.LogRecordView import LogRecordView
+        cat_info, subcats_info = LifeTrackerManager.get_category_details(category_id)
+        if not cat_info:
+            return None, None, "❌ 發生錯誤：找不到該分類資訊", []
+        view_tmp = LogRecordView(self.bot, category_id, cat_info, subcats_info)
+        embed, view = view_tmp.build_ui()
+        return embed, view, "", []
+        
+    async def _handle_create_diary_subcategory(self, message, data):
+        category_name = data.get('category_name')
+        subcategories = data.get('subcategories')
+        if subcategories is None:
+            from cogs.LifeTracker.ui.Button.AddSubCategoryBtn import AddSubCategoryBtn
+            view = ActionHandler.get_button_view(AddSubCategoryBtn(self.bot, category_name=category_name))
+            return None, view, "", []
+
+        subcats_list = [s.strip() for s in subcategories if s.strip()] if subcategories else []
+        success, error_msg = LifeTrackerManager.add_subcategory(category_name=category_name, subcat_names_list=subcats_list)
+        if not success:
+            return None, None, error_msg, []
+        from cogs.LifeTracker.ui.View.ManageSubcatView import ManageSubcatView
+
+        embed, view = await ManageSubcatView.create_ui(self.bot, name_to_id(TrackerCategory, category_name))
+        embed.title = "✅ 標籤新增成功！"
+        embed.color = discord.Color.green()
+        return embed, view, "", []
+
+    async def _handle_delete_diary_subcategory(self, message, data):
+        category_name = data.get('category_name')
+        subcategory_name = data.get('subcategory_name')
+        try: category_id = name_to_id(TrackerCategory, category_name)
+        except NameError as err_msg: return None, None, err_msg, []
+        if subcategory_name is None:
+            from cogs.LifeTracker.ui.Button import ToggleDeleteBtn
+            _, subcats_info = LifeTrackerManager.get_category_details(category_id)
+            if not subcats_info:
+                return None, None, f"目前 {category_name} 沒有任何標籤喔！", []
+            view = ActionHandler.get_button_view(ToggleDeleteBtn(self.bot, category_id, subcats_info))
+            return None, view, "", []
+        suc = LifeTrackerManager.delete_subcategory(subcategory_name)
+        if suc:
+            return None, None, f"從 {category_name} 刪除 {subcategory_name} 成功", []
+        return None, None, f"從 {category_name} 刪除 {subcategory_name} 失敗。\n{subcategory_name} 可能不存在。", []
+        
+    async def _handle_modify_diary_subcategory_empty(self, message, data):
+        category_name = data.get('category_name')
+        try: category_id = name_to_id(TrackerCategory, category_name)
+        except NameError as err_msg: return None, None, err_msg, []
+        _, subcats_info = LifeTrackerManager.get_category_details(category_id)
+        if not subcats_info:
+            return None, None, f"目前 {category_name} 沒有任何標籤喔！", []
+        from cogs.LifeTracker.ui.Button import EditModeBtn
+        view = ActionHandler.get_button_view(EditModeBtn(self.bot, category_id))
+        return None, view, "", []
+    
+    async def _handle_modify_diary_subcategory_with_data(self, message, data):
+        category_name = data.get('category_name')
+        subcategory_name = data.get('subcategory_name')
+        from database.db import SessionLocal
+        with SessionLocal as db:
+            try:
+                category_id = name_to_id(TrackerCategory, category_name, db=db)
+                subcat_id = name_to_id(TrackerSubCategory, subcategory_name, db=db)
+            except NameError as err_msg: return None, None, err_msg, []
+        
+        new_subcategory_name = data.get('new_subcategory_name')
+        success, error_msg = LifeTrackerManager.update_subcategory_name(category_id, subcat_id, new_subcategory_name)
+        if not success:
+            return None, None, error_msg, []
+        from cogs.LifeTracker.ui.View.ManageSubcatView import ManageSubcatView
+        embed, view = await ManageSubcatView.create_ui(self.bot, self.category_id)
+        embed.title = "✅ 標籤名稱已更新"
+        embed.color = discord.Color.green()
+        return embed, view, "", []
+        
+        
     # --- 3. 行事曆模組 ---
     async def _handle_create_itinerary_empty(self, message, data):
         
