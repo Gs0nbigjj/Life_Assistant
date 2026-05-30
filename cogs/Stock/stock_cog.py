@@ -57,7 +57,6 @@ class Stock(commands.Cog):
         except Exception as e:
             print(f"⚠️ 監控循環錯誤: {e}")
 
-    # ==================== 抽離出的單一股票檢查處理器 ====================
 
     async def _check_single_watch(self, watch: dict, all_watches: list, today_date_str: str):
         """[輔助方法] 負責單一股票的 API 請求、條件比對與通知分發。"""
@@ -67,8 +66,7 @@ class Stock(commands.Cog):
         # 取得即時報價 (透過 fugle_api_lock 確保執行緒安全)
         async with fugle_api_lock:
             info = get_stock_quote(symbol, FUGLE_TOKEN)
-            
-        # 衛述句防呆：若拿不到報價或價格不合法，立刻早退
+
         curr_price = info.get('lastPrice') or info.get('current')
         if not info or not curr_price:
             return
@@ -78,29 +76,33 @@ class Stock(commands.Cog):
         # 決定預警類型與訊息
         alert_info = self._evaluate_alert_condition(watch, info, curr_price, change_pct, today_date_str)
         if not alert_info:
-            return  # 未達觸發門檻，或今日已發送過該類型的通知，早退
+            return
 
         alert_msg, alert_type = alert_info
 
-        # 送私訊
+        # 發送私訊
         success = await self.send_dm(user_id, alert_msg)
-        
-        # 發送成功才寫入資料庫與更新快取，避免因網路失敗導致使用者沒收到卻被鎖定通知
-        if success:
-            StockManager.update_notified_price_and_date(
-                user_id=user_id, 
-                symbol=symbol, 
-                price=curr_price, 
-                alert_type=alert_type, 
-                date_str=today_date_str
-            )
-            
-            for w in all_watches:
-                if w['user_id'] == user_id and w['stock_symbol'] == symbol:
-                    if alert_type == "up":
-                        w['last_up_date'] = today_date_str
-                    elif alert_type == "down":
-                        w['last_down_date'] = today_date_str
+        if not success:
+            return
+
+        # 發送成功：寫入資料庫歷史紀錄
+        StockManager.update_notified_price_and_date(
+            user_id=user_id, 
+            symbol=symbol, 
+            price=curr_price, 
+            alert_type=alert_type, 
+            date_str=today_date_str
+        )
+        self._sync_memory_caches(all_watches, user_id, symbol, alert_type, today_date_str)
+
+    @staticmethod
+    def _sync_memory_caches(all_watches: list, user_id: int, symbol: str, alert_type: str, today_date_str: str):
+        for w in all_watches:
+            if w['user_id'] == user_id and w['stock_symbol'] == symbol:
+                if alert_type == "up":
+                    w['last_up_date'] = today_date_str
+                elif alert_type == "down":
+                    w['last_down_date'] = today_date_str
 
     @staticmethod
     def _evaluate_alert_condition(watch: dict, info: dict, curr_price: float, change_pct: float, today_date_str: str) -> tuple[str, str] | None:
