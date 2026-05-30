@@ -166,6 +166,7 @@ class ActionHandler:
         return embed, view, "", ([chart_file] if chart_file else [])
 
     async def _handle_create_diary_record(self, message, data):
+        await asyncio.sleep(0)
         category_name = data.get('category_name')
         try: category_id = name_to_id(TrackerCategory, category_name)
         except NameError as err_msg: return None, None, err_msg, []
@@ -198,6 +199,7 @@ class ActionHandler:
         return embed, view, "", []
 
     async def _handle_delete_diary_subcategory(self, message, data):
+        await asyncio.sleep(0)  
         category_name = data.get('category_name')
         subcategory_name = data.get('subcategory_name')
         try: category_id = name_to_id(TrackerCategory, category_name)
@@ -215,6 +217,7 @@ class ActionHandler:
         return None, None, f"從 {category_name} 刪除 {subcategory_name} 失敗。\n{subcategory_name} 可能不存在。", []
         
     async def _handle_modify_diary_subcategory_empty(self, message, data):
+        await asyncio.sleep(0)
         category_name = data.get('category_name')
         try: category_id = name_to_id(TrackerCategory, category_name)
         except NameError as err_msg: return None, None, err_msg, []
