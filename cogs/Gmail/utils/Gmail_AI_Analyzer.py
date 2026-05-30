@@ -4,6 +4,7 @@ from openai import AsyncOpenAI
 from config import OPENROUTER_POOL
 import asyncio
 import os
+import anyio
 prompt_path = os.path.join(os.path.dirname(__file__), "gmail_prompt.txt")
 class GmailAiAnalyzer:
     MODEL_ID = "nvidia/nemotron-3-super-120b-a12b:free" 
@@ -40,8 +41,8 @@ class GmailAiAnalyzer:
             cat_list_str = "\n".join([f"- {c['name']} (判斷規則: {c['desc']})" for c in categories])
             categories_prompt = f"請從以下分類中挑選最適合的一個（必須完全符合名稱，絕對不要加上任何括號）。如果都不適合，請在 category 欄位回傳 null。\n現有分類：\n{cat_list_str}"
 
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            prompt_template = f.read()
+        path = anyio.Path(prompt_path)
+        prompt_template = await path.read_text(encoding="utf-8")
 
         prompt = prompt_template.replace("{subject}", subject)\
                                 .replace("{body}", body)\
