@@ -33,7 +33,7 @@
 - CREATE_DIARY_SUBCATEGORY #新增標籤
   - category_name* #主類別名稱
   - subcategories (list[string]) #沒填會跳出選單給使用者
-- DELETE_DIARY_SUBCATEGORY
+- DELETE_DIARY_SUBCATEGORY #刪除標籤
   - category_name* #主類別名稱
   - subcategory_name (string) #沒填會跳出選單給使用者
 - MODIFY_DIARY_SUBCATEGORY_EMPTY #更改標籤名稱 無資料

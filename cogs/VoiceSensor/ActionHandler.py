@@ -159,7 +159,7 @@ class ActionHandler:
         from cogs.LifeTracker.ui.View import CategoryDetailView
         category_name = data.get('category_name')
         if category_name is None:
-            return self._handle_life_diary(message, data)
+            return await self._handle_life_diary(message, data)
         try: category_id = name_to_id(TrackerCategory, category_name)
         except NameError as err_msg: return None, None, err_msg, []
         embed, view, chart_file = await CategoryDetailView.create_ui(self.bot, category_id)
