@@ -5,9 +5,8 @@ import asyncio
 import traceback
 from datetime import datetime
 
-# 導入配置與自定義工具
 from cogs.Stock.stock_config import MARKET_OPEN, MARKET_CLOSE, REPORT_TIME, FUGLE_TOKEN, TW_TZ
-from cogs.Stock.utils import StockManager, get_stock_quote,fugle_api_lock
+from cogs.Stock.utils import StockManager, get_stock_quote, fugle_api_lock
 
 class Stock(commands.Cog):
     def __init__(self, bot):
@@ -47,11 +46,12 @@ class Stock(commands.Cog):
         today_date_str = now.strftime('%Y-%m-%d')
 
         try:
+            # 每次回圈開始時，從資料庫撈取最新預警設定
             watches = StockManager.get_alert_watches()
 
             for watch in watches:
-                # 將每一筆訂閱交給獨立的處理器，完全拉平巢狀
-                await self._check_single_watch(watch, today_date_str)
+                # 傳入整個 watches 陣列，以便在觸發時同步更新記憶體快取
+                await self._check_single_watch(watch, watches, today_date_str)
                 await asyncio.sleep(1.1) 
                 
         except Exception as e:
@@ -59,41 +59,48 @@ class Stock(commands.Cog):
 
     # ==================== 抽離出的單一股票檢查處理器 ====================
 
-    async def _check_single_watch(self, watch: dict, today_date_str: str):
-        """[輔助方法] 負責單一股票的 API 請求、條件比對與通知分發。使用衛述句全面平坦化"""
+    async def _check_single_watch(self, watch: dict, all_watches: list, today_date_str: str):
+        """[輔助方法] 負責單一股票的 API 請求、條件比對與通知分發。"""
         user_id = watch['user_id']
         symbol = watch['stock_symbol']
 
-        # 1. 取得即時報價 (透過 fugle_api_lock 確保執行緒安全)
+        # 取得即時報價 (透過 fugle_api_lock 確保執行緒安全)
         async with fugle_api_lock:
             info = get_stock_quote(symbol, FUGLE_TOKEN)
             
         # 衛述句防呆：若拿不到報價或價格不合法，立刻早退
         curr_price = info.get('lastPrice') or info.get('current')
-
         if not info or not curr_price:
             return
 
         change_pct = info['changePercent'] / 100
 
-        # 2. 決定預警類型與訊息
+        # 決定預警類型與訊息
         alert_info = self._evaluate_alert_condition(watch, info, curr_price, change_pct, today_date_str)
         if not alert_info:
             return  # 未達觸發門檻，或今日已發送過該類型的通知，早退
 
         alert_msg, alert_type = alert_info
 
-        # 3. 既然通過了 _evaluate_alert_condition 的日期檢查，代表今天還沒發送過此類型的通知
-        # 直接發送通知，並更新資料庫
-        await self.send_dm(user_id, alert_msg)
+        # 送私訊
+        success = await self.send_dm(user_id, alert_msg)
         
-        StockManager.update_notified_price_and_date(
-            user_id=user_id, 
-            symbol=symbol, 
-            price=curr_price, 
-            alert_type=alert_type, 
-            date_str=today_date_str
-        )
+        # 發送成功才寫入資料庫與更新快取，避免因網路失敗導致使用者沒收到卻被鎖定通知
+        if success:
+            StockManager.update_notified_price_and_date(
+                user_id=user_id, 
+                symbol=symbol, 
+                price=curr_price, 
+                alert_type=alert_type, 
+                date_str=today_date_str
+            )
+            
+            for w in all_watches:
+                if w['user_id'] == user_id and w['stock_symbol'] == symbol:
+                    if alert_type == "up":
+                        w['last_up_date'] = today_date_str
+                    elif alert_type == "down":
+                        w['last_down_date'] = today_date_str
 
     @staticmethod
     def _evaluate_alert_condition(watch: dict, info: dict, curr_price: float, change_pct: float, today_date_str: str) -> tuple[str, str] | None:
@@ -112,21 +119,22 @@ class Stock(commands.Cog):
         # 漲幅預警判定
         if watch['target_up'] and change_pct >= watch['target_up']:
             if str(last_up_date) != today_date_str:
-                return f"🔴 **{info['name']} ({symbol})** 噴發！\n現價：`{curr_price}` (漲幅：`{change_pct*100:.2f}%`)", "up"
+                return f"🔴 **{info.get('name', symbol)} ({symbol})** 噴發！\n現價：`{curr_price}` (漲幅：`{change_pct*100:.2f}%`)", "up"
 
         # 跌幅預警判定
         if watch['target_down'] and change_pct <= watch['target_down']:
             if str(last_down_date) != today_date_str:
-                return f"🟢 **{info['name']} ({symbol})** 下跌！\n現價：`{curr_price}` (跌幅：`{change_pct*100:.2f}%`)", "down"
+                return f"🟢 **{info.get('name', symbol)} ({symbol})** 下跌！\n現價：`{curr_price}` (跌幅：`{change_pct*100:.2f}%`)", "down"
 
         return None
 
-    @tasks.loop(time=REPORT_TIME)
-
-    async def send_dm(self, user_id, content):
-        """發送私訊輔助函數"""
+    async def send_dm(self, user_id: int, content: str) -> bool:
         try:
-            user = await self.bot.fetch_user(user_id)
-            if user: await user.send(content)
+            user = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
+            if user: 
+                await user.send(content)
+                return True
+            return False
         except Exception as e:
             print(f"❌ 無法發送私訊給 {user_id}: {e}")
+            return False
