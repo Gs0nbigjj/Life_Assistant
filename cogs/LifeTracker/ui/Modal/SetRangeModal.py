@@ -1,7 +1,7 @@
 # cogs\LifeTracker\ui\Modal\SetRangeModal.py
 import discord
 from discord import ui
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 from cogs.BasicDiscordObject import ValidatedModal
 from cogs.LifeTracker.LifeTracker_config import (
     MAX_DAY_RANGE,
@@ -21,11 +21,11 @@ class SetRangeModal(ValidatedModal):
         )
         self.add_item(self.days_input)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         """💡 呼叫 Manager 執行業務邏輯校驗與資料寫入"""
         val = self.days_input.value.strip()
         
-        success, error_msg = LifeTracker_Manager.add_range_option(self.category_id, val)
+        success, error_msg = LifeTrackerManager.add_range_option(self.category_id, val)
         
         if not success:
             return error_msg

@@ -98,11 +98,13 @@ class StockManager:
                 "target_up": w.target_up,
                 "target_down": w.target_down,
                 "last_notified_price": w.last_notified_price,
+                "last_up_date": w.last_up_date,
+                "last_down_date": w.last_down_date,
             } for w in watches]
 
     @staticmethod
-    def update_notified_price(user_id: int, symbol: str, price: float):
-        """更新股票的最後通知價格"""
+    def update_notified_price_and_date(user_id: int, symbol: str, price: float, alert_type: str, date_str: str):
+        """更新股票的最後通知價格與當日通知日期"""
         from database import SessionLocal
         with SessionLocal() as session:
             from database.models import UserStockWatch
@@ -111,4 +113,12 @@ class StockManager:
             ).first()
             if watch:
                 watch.last_notified_price = price
+                
+                # 依據是漲還是跌，將當前的 '2026-05-19' 寫入對應的資料表欄位
+                if alert_type == "up":
+                    watch.last_up_date = date_str
+                elif alert_type == "down":
+                    watch.last_down_date = date_str
+                    
                 session.commit()
+

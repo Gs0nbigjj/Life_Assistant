@@ -9,7 +9,7 @@ from cogs.Stock.ui.View.StockDashboardView import StockDashboardView
 class StockQueryModal(ui.Modal, title="股票快速查詢"):
     symbol = ui.TextInput(
         label="股票代號",
-        placeholder="例如: 2330",
+        placeholder="例如: 2330, 加權指: IX0001, 櫃買指: IX0043",
         min_length=4,
         max_length=6,
         required=True
@@ -31,21 +31,24 @@ class StockQueryModal(ui.Modal, title="股票快速查詢"):
             async with fugle_api_lock:
                 info = get_stock_quote(sym, FUGLE_TOKEN)
 
-            view = StockDashboardView(bot, user_id)
+            view = ui.View(timeout=None)
+            
+            from cogs.Stock.ui.Button.StockBackToDashboardBtn import StockBackToDashboardBtn  # 請確認你的實際路徑
+
+            view.add_item(StockBackToDashboardBtn(bot, row=0))
 
             if not info or "lastPrice" not in info:
                 err_embed = discord.Embed(
-                    title="❌ 查詢失敗", 
+                    title="查詢失敗", 
                     description=f"找不到股票 `{sym}`，請確認代號是否正確。", 
                     color=discord.Color.red()
                 )
                 return err_embed, view
 
-            # 建立結果 Embed
             price = info['lastPrice']
             pct = info['changePercent']
             if pct > 0:
-                emoji = "🔺"
+                emoji = "🔴"
                 color = discord.Color.red()
             elif pct < 0:
                 emoji = "🟢"
@@ -59,22 +62,19 @@ class StockQueryModal(ui.Modal, title="股票快速查詢"):
                 color=color,
                 timestamp=discord.utils.utcnow()
             )
-            embed.add_field(name="目前成交價", value=f"### `{price}`", inline=True)
+            embed.add_field(name="currently成交價", value=f"### `{price}`", inline=True)
             embed.add_field(name="本日漲跌幅", value=f"### {emoji} `{pct:.2f}%`", inline=True)
             embed.set_footer(text="提示：此數據為即時行情，僅供參考。")
 
-            # 將查詢結果更新回原來的訊息上，並附加上原有的 View (保持按鈕存在)
             return embed, view
 
         except Exception as e:
-            print(f"❌ 快速查詢失敗: {e}")
+            print(f"快速查詢失敗: {e}")
             traceback.print_exc()
-            
-            # 發生系統錯誤時的畫面更新
+        
             err_embed = discord.Embed(
-                title="❌ 系統錯誤", 
+                title="系統錯誤", 
                 description="查詢過程中發生未預期的系統錯誤。", 
                 color=discord.Color.red()
             )
             return err_embed, view
-    

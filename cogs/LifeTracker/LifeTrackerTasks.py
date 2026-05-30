@@ -3,7 +3,7 @@ from datetime import time, datetime
 import asyncio
 from database import SessionLocal
 from database.models import TrackerCategory, EInvoiceConfig
-from cogs.LifeTracker.utils import LifeTracker_Manager, AI_Analyzer
+from cogs.LifeTracker.utils import LifeTrackerManager, AiAnalyzer
 from cogs.LifeTracker.src.invoice_pipeline import InvoicePipeline
 from config import TW_TZ
 
@@ -30,11 +30,11 @@ class LifeTrackerTasks(commands.Cog):
                 categories = db.query(TrackerCategory).all()
                 
                 for cat in categories:
-                    analysis_data = LifeTracker_Manager.get_records_for_analysis(cat.id, range_type="week")
+                    analysis_data = LifeTrackerManager.get_records_for_analysis(cat.id, range_type="week")
                     
                     if analysis_data:
                         try:
-                            summary = await AI_Analyzer.analyze_lifestyle(cat.name, analysis_data)
+                            summary = await AiAnalyzer.analyze_lifestyle(cat.name, analysis_data)
                             
                             cat.last_ai_analysis = summary
                             cat.analysis_updated_at = datetime.now(TW_TZ)
@@ -70,7 +70,7 @@ class LifeTrackerTasks(commands.Cog):
                 # 禮貌性延遲：每次抓完一位使用者停頓 10 秒，避免對財政部伺服器造成瞬間 DDoS
                 await asyncio.sleep(10)
                 
-            print(f"🏁 [Task] 每日發票自動抓取任務結束！")
+            print("🏁 [Task] 每日發票自動抓取任務結束！")
                 
         except Exception as e:
             print(f"❌ [Task] 每日發票自動抓取任務出錯: {e}")

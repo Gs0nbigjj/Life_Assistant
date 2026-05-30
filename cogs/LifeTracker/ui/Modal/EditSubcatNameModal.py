@@ -1,7 +1,7 @@
 # cogs\LifeTracker\ui\Modal\EditSubcatNameModal.py
 import discord
 from discord import ui
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 from cogs.BasicDiscordObject import ValidatedModal
 from cogs.LifeTracker.ui.View import ManageSubcatView
 from cogs.LifeTracker.LifeTracker_config import (
@@ -23,10 +23,10 @@ class EditSubcatNameModal(ValidatedModal):
         )
         self.add_item(self.new_name_input)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         new_name = self.new_name_input.value.strip()
         
-        success, error_msg = LifeTracker_Manager.update_subcategory_name(
+        success, error_msg = LifeTrackerManager.update_subcategory_name(
             self.category_id, self.subcat_id, new_name
         )
         

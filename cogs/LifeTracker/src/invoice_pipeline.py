@@ -2,7 +2,7 @@ import asyncio
 import traceback
 import os
 import glob
-from cogs.LifeTracker.utils.EInvoice_Manager import EInvoice_Manager
+from cogs.LifeTracker.utils.EInvoice_Manager import EInvoiceManager
 from cogs.LifeTracker.src.invoice_crawler import InvoiceCrawler
 from cogs.LifeTracker.src.invoice_processor import InvoiceProcessor
 
@@ -16,7 +16,8 @@ class InvoicePipeline:
         if os.path.exists(download_dir):
             for f in glob.glob(os.path.join(download_dir, "*.csv")):
                 try: os.remove(f)
-                except: pass
+                except Exception:
+                    pass
 
         crawler = None
         try:
@@ -44,16 +45,17 @@ class InvoicePipeline:
             # 🌟 [新增] 使用 finally 保證無論如何都會關閉瀏覽器，釋放記憶體
             if crawler and hasattr(crawler, 'driver') and crawler.driver:
                 try: crawler.driver.quit()
-                except: pass
+                except Exception:
+                    pass
 
     @staticmethod
     async def execute(user_id: int) -> tuple[bool, str]:
         """給按鈕或排程呼叫的非同步主入口"""
-        config = EInvoice_Manager.get_config(user_id)
+        config = EInvoiceManager.get_config(user_id)
         if not config:
             return False, "找不到發票載具設定，請先綁定帳號。"
 
-        start_id, end_id = EInvoice_Manager.calculate_fetch_date_range(config.get('last_fetch_date'))
+        start_id, end_id = EInvoiceManager.calculate_fetch_date_range(config.get('last_fetch_date'))
 
         # 🌟 [重要修改] 將 > 改為 >=。如果起點等於終點(代表今天已經抓過了)，就直接跳過！
         if start_id >= end_id:
@@ -75,10 +77,10 @@ class InvoicePipeline:
             processor = InvoiceProcessor(user_id=user_id)
             await processor.process()
             
-            EInvoice_Manager.update_last_fetch_date(user_id, end_id)
+            EInvoiceManager.update_last_fetch_date(user_id, end_id)
             return True, f"區間 {start_id} ~ {end_id} 的發票抓取與 AI 分類已全數完成！"
             
-        except Exception as e:
+        except Exception:
             print("[InvoicePipeline 處理器錯誤]")
             traceback.print_exc()
             return False, "CSV 處理與 AI 分類時發生錯誤。"

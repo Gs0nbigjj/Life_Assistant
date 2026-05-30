@@ -1,11 +1,11 @@
 from discord.ext import commands
 from datetime import time
 from cogs.VoiceSensor.ActionHandler import ActionHandler
-from cogs.VoiceSensor.utils import AI_Analyzer
+from cogs.VoiceSensor.utils import AiAnalyzer
 from cogs.VoiceSensor.src import stt_whisper
 from config import TW_TZ
 from database.db_utils import get_mem
-
+import discord
 REPORT_TIME = time(hour=0, minute=0, tzinfo=TW_TZ)
 
 LISTEN_FLAG = True
@@ -37,9 +37,8 @@ class VoiceSensorCog(commands.Cog):
 
                 try:
                     await message.delete()
-                except:
+                except discord.HTTPException:
                     pass
-
                 # 👉 語音轉文字
                 recognized_text = stt_whisper(audio_data)
 
@@ -69,7 +68,7 @@ class VoiceSensorCog(commands.Cog):
     async def process_text(self, text: str, message, processing_msg):
         # 1️⃣ 呼叫 AI
         mem = get_mem(message.author.id, message.author.name)
-        result = await AI_Analyzer.parse_ui_action(text, mem.memory_text if mem else None)
+        result = await AiAnalyzer.parse_ui_action(text, mem.memory_text if mem else None)
         actions = result.get("actions", [])
         
         if not actions:

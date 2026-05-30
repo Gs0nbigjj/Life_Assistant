@@ -1,7 +1,7 @@
 # cogs\LifeTracker\ui\Modal\AddSubCategoryModal.py
 import discord
 from discord import ui
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 from cogs.BasicDiscordObject import ValidatedModal 
 from cogs.LifeTracker.LifeTracker_config import (
     MAX_SUBCATS,
@@ -23,10 +23,10 @@ class AddSubCategoryModal(ValidatedModal):
         )
         self.add_item(self.subcat_names_input)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         new_names = [n.strip() for n in self.subcat_names_input.value.split() if n.strip()]
         
-        success, error_msg = LifeTracker_Manager.add_subcategory(self.category_id, new_names)
+        success, error_msg = LifeTrackerManager.add_subcategory(self.category_id, new_names)
         
         if not success:
             return error_msg

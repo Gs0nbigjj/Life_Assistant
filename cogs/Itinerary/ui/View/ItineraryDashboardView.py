@@ -64,7 +64,7 @@ class ItineraryDashboardView(LockableView):
         current_items = month_events[start:end]
         
         # 2. 生成月曆圖片
-        event_days = list(set(ev.event_time.day for ev in month_events))
+        event_days = list({ev.event_time.day for ev in month_events})
         img_buffer = generate_month_calendar(target_year, target_month, event_days)
         file = discord.File(fp=img_buffer, filename="calendar.png")
 

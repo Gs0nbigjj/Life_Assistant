@@ -24,6 +24,46 @@ class EmailTools:
         _, addr = parseaddr(text)
         return addr.strip()
 
+    async def _connect_and_login_imap(self) -> aioimaplib.IMAP4_SSL:
+        """處理 IMAP 連線初始化、異步狀態等待與登入驗證"""
+        imap_client = aioimaplib.IMAP4_SSL(self.imap_host)
+
+        # 異步等待連線啟動狀態完成
+        timeout = 15
+        while imap_client.protocol.state == 'STARTED' and timeout > 0:
+            await asyncio.sleep(0.5)
+            timeout -= 0.5
+        
+        await asyncio.sleep(1)
+
+        # 登入驗證
+        login_res = await imap_client.login(self.user, self.password)
+        if login_res.result != 'OK':
+            raise ValueError("AUTH_FAILED")
+            
+        return imap_client
+
+    def _filter_new_email_ids(self, all_ids: list, last_id) -> tuple[list, str | None]:
+        """專門處理郵件 ID 的過濾與校正邏輯，降低主要函式複雜度"""
+        drift_fix_id = None
+        new_ids = []
+
+        # 衛述句：若沒給 last_id 或不是數字，直接抓最後 3 封
+        if not last_id or not str(last_id).isdigit():
+            return [str(i) for i in all_ids[-3:]], None
+
+        last_id_int = int(last_id)
+        max_id = all_ids[-1]
+        
+        # 序列號偏移校正
+        if last_id_int > max_id:
+            print(f"⚠️ [EmailTools] 序列號偏移 (舊:{last_id_int} > 新:{max_id})，僅發送校正訊號，不重複抓取！")
+            drift_fix_id = str(max_id)
+        else:
+            new_ids = [str(i) for i in all_ids if i > last_id_int]
+
+        return new_ids, drift_fix_id
+
     async def get_unread_emails(self, last_id):
         if not self.user or not self.password:
             print("[EmailTools] 錯誤: 未提供帳號密碼，跳過檢查")
@@ -31,26 +71,13 @@ class EmailTools:
 
         imap_client = None
         results = []
-        drift_fix_id = None
 
         try:
-            imap_client = aioimaplib.IMAP4_SSL(self.imap_host)
-
-            timeout = 15
-            while imap_client.protocol.state == 'STARTED' and timeout > 0:
-                await asyncio.sleep(0.5)
-                timeout -= 0.5
-            
-            await asyncio.sleep(1)
-
-            login_res = await imap_client.login(self.user, self.password)
-
-            if login_res.result != 'OK':
-                raise ValueError("AUTH_FAILED")
-
-            # await imap_client.login(self.user, self.password)
+            # 1. 建立連線與登入
+            imap_client = await self._connect_and_login_imap()
             await imap_client.select("INBOX")
 
+            # 2. 搜尋郵件
             status, messages = await imap_client.search("ALL")
             if status != "OK" or not messages[0]:
                 return [], None
@@ -59,20 +86,10 @@ class EmailTools:
             if not all_ids:
                 return [], None
             
-            new_ids = []
-            if last_id and str(last_id).isdigit():
-                last_id_int = int(last_id)
-                max_id = all_ids[-1]
-                
-                if last_id_int > max_id:
-                    print(f"⚠️ [EmailTools] 序列號偏移 (舊:{last_id_int} > 新:{max_id})，僅發送校正訊號，不重複抓取！")
-                    #  記錄需要校正的 ID，但 new_ids 保持為空，這樣就不會去 fetch 信件內容了
-                    drift_fix_id = str(max_id) 
-                else:
-                    new_ids = [str(i) for i in all_ids if i > last_id_int]
-            else:
-                new_ids = [str(i) for i in all_ids[-3:]]
+            # 3. 呼叫抽離出來的過濾邏輯
+            new_ids, drift_fix_id = self._filter_new_email_ids(all_ids, last_id)
 
+            # 4. 抓取新信件
             for m_id in new_ids:
                 res, data = await imap_client.fetch(m_id, "(RFC822)")
                 if res == "OK":
@@ -82,14 +99,13 @@ class EmailTools:
             return results, drift_fix_id
 
         except Exception as e:
-            # 判斷是否為密碼錯誤
             err_msg = str(e).upper()
             if "AUTHENTICATION FAILED" in err_msg or "INVALID CREDENTIALS" in err_msg or "AUTH_FAILED" in err_msg:
                 print(f"[EmailTools] 使用者 {self.user} 驗證失敗 (密碼錯誤)")
-                raise ValueError("AUTH_FAILED") # 丟給 Cog 處理停用與通知
+                raise ValueError("AUTH_FAILED")
             
             print(f"⚠️ [EmailTools] 使用者 {self.user} 抓取發生其他錯誤: {e}")
-            return [], None # 其他錯誤 則回傳空值，不拋出異常
+            return [], None
         finally:
             if imap_client:
                 try: 
@@ -121,12 +137,12 @@ class EmailTools:
         text = re.sub(r'</(p|div|li|tr)>', '\n', text, flags=re.IGNORECASE)
         text = re.sub(r'<[^>]+>', '', text)
         text = html.unescape(text)
-        text = re.sub(r'^[ \t]+|[ \t]+$', '', text, flags=re.MULTILINE)
+        text = '\n'.join([line.strip() for line in text.splitlines()])
         text = re.sub(r'\n{3,}', '\n\n', text)
         return text.strip()
 
     def _parse_multipart_body(self, msg):
-        """專門處理 multipart 郵件的輔助函數 (降低主要函數的認知複雜度)"""
+        """處理 multipart 郵件的輔助函數"""
         body = ""
         is_html = False
         
@@ -150,13 +166,11 @@ class EmailTools:
                 
         return body, is_html
 
-
     def _get_body(self, msg):
         """主要獲取郵件內文的函數"""
         body = ""
         is_html = False
         
-        # 將原本沉重的巢狀邏輯抽離
         if msg.is_multipart():
             body, is_html = self._parse_multipart_body(msg)
         else:
@@ -166,7 +180,6 @@ class EmailTools:
             if msg.get_content_type() == "text/html":
                 is_html = True
         
-        # 後續的 HTML 清理與長度限制邏輯維持不變
         if is_html or "<html" in body.lower() or "<body" in body.lower():
             body = self._clean_html_to_text(body)
         

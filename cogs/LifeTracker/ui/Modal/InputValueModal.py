@@ -3,7 +3,7 @@ from discord import ui
 from datetime import datetime
 from config import TW_TZ
 from cogs.BasicDiscordObject import ValidatedModal
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 from cogs.LifeTracker.LifeTracker_config import (
     MAX_INPUT_VALUE,
     MAX_TEXT_LENGTH
@@ -47,7 +47,7 @@ class InputValueModal(ValidatedModal):
             self.note_input.default = parent_view.note
         self.add_item(self.note_input)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         """💡 呼叫 Manager 進行『純數據校驗』"""
         
         temp_values = {}
@@ -57,7 +57,7 @@ class InputValueModal(ValidatedModal):
         note = self.note_input.value.strip()
         record_time = self.time_input.value.strip()
 
-        is_valid, error_msg = LifeTracker_Manager.validate_record_data(
+        is_valid, error_msg = LifeTrackerManager.validate_record_data(
             self.parent_view.category_id, temp_values, note, record_time
         )
         

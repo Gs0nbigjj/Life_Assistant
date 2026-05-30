@@ -1,6 +1,6 @@
 import discord
 from discord import ui
-from cogs.LifeTracker.utils import LifeTracker_Manager
+from cogs.LifeTracker.utils import LifeTrackerManager
 
 from cogs.LifeTracker.ui.Button import ToggleDeleteBtn,BackToDetailBtn,AddSubCategoryBtn,EditModeBtn
 from cogs.LifeTracker.ui.Select import DeleteSubcatSelect,EditSubcatSelect
@@ -30,7 +30,7 @@ class ManageSubcatView(LockableView):
 
     @staticmethod
     async def create_ui(bot, category_id: int, mode: str = None):
-        cat_info, subcats_info = LifeTracker_Manager.get_category_details(category_id)
+        cat_info, subcats_info = LifeTrackerManager.get_category_details(category_id)
 
         embed = discord.Embed(
             title=f"⚙️ 管理標籤：{cat_info['name']}",

@@ -25,13 +25,11 @@ if (Test-Path ".venv") {
 } else {
     Write-Host "[INFO] Creating virtual environment..." -ForegroundColor Cyan
     python -m venv .venv
-    
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Failed to create virtual environment" -ForegroundColor Red
         Read-Host "Press Enter to exit"
         exit 1
     }
-    
     Write-Host "[INFO] Virtual environment created" -ForegroundColor Green
 }
 

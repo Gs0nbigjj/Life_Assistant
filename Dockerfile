@@ -4,14 +4,14 @@ FROM python:3.13-slim
 WORKDIR /app
 
 # 1. 更新系統並安裝 wget (下載工具)
+# 2. 直接下載並安裝 Google Chrome 穩定版 (.deb)
+# 這種裝法會自動處理相依套件，且不需要 apt-key，避開 127 錯誤
+
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
-    --no-install-recommends
-
-# 2. 直接下載並安裝 Google Chrome 穩定版 (.deb)
-# 這種裝法會自動處理相依套件，且不需要 apt-key，避開 127 錯誤
-RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    --no-install-recommends \
+    && wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
     && apt-get install -y ./google-chrome-stable_current_amd64.deb \
     && rm google-chrome-stable_current_amd64.deb \
     && rm -rf /var/lib/apt/lists/*
@@ -27,6 +27,11 @@ COPY . .
 ENV CHROME_BIN=/usr/bin/google-chrome
 ENV PORT=10000
 
-# 6. 啟動指令 (請確認你的主程式檔名是 main.py 還是 bot.py)
-# CMD ["python", "bot.py"]
-CMD bash -c "alembic upgrade head && python -m pip install -e . && python -m bot"
+# # 6. 啟動指令
+# 複製啟動腳本到容器內
+COPY start.sh /start.sh
+
+# 給予腳本執行權限
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]

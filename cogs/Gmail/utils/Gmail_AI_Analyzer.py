@@ -8,7 +8,7 @@ client = AsyncOpenAI(
     api_key=OPENROUTER_API_KEY,
 )
 
-class Gmail_AI_Analyzer:
+class GmailAiAnalyzer:
     MODEL_ID = "nvidia/nemotron-3-super-120b-a12b:free" 
 
     @staticmethod
@@ -43,20 +43,20 @@ class Gmail_AI_Analyzer:
         try:
             response = await asyncio.wait_for(
                 client.chat.completions.create(
-                    model=Gmail_AI_Analyzer.MODEL_ID,
+                    model=GmailAiAnalyzer.MODEL_ID,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.1
                 ),
-                timeout=60.0
+                timeout=120.0
             )
             
             if not hasattr(response, 'choices') or not response.choices:
-                print(f"❌ [API 異常] OpenRouter 回傳了無效的格式")
+                print("❌ [API 異常] OpenRouter 回傳了無效的格式")
                 return None, "（API 回傳異常）"
                 
             message = response.choices[0].message
             if not message or not message.content:
-                print(f"❌ [API 異常] AI 回傳了空內容")
+                print("❌ [API 異常] AI 回傳了空內容")
                 return None, "（AI 回傳空內容）"
             
             raw_result = message.content.strip()

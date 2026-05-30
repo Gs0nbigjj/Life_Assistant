@@ -23,10 +23,8 @@ class NextPageBtn(SafeButton):
         )
         
         if len(result) == 3:
-            embed, view, file = result
-            attachments = [file] if file else []
+            embed, view, _ = result
         else:
             embed, view = result[0], result[1]
-            attachments = []
 
         await interaction.edit_original_response(embed=embed, view=view)

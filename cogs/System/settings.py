@@ -29,21 +29,6 @@ class SettingsCog(commands.Cog):
             print(f"⚙️ (User: {interaction.user})")
         else:
             await interaction.followup.send("❌ 設定失敗：系統錯誤")
-        
-        # # 🌟 將資料庫操作丟入背景執行緒
-        # success, error_msg = await asyncio.to_thread(
-        #     SystemManager.update_guild_setting,
-        #     guild_id=guild_id,
-        #     column_name=column_name,
-        #     value=value
-        # )
-
-        # if success:
-        #     await interaction.followup.send(success_msg)
-        #     print(f"⚙️ 設定更新 [Guild: {guild_id}]: {column_name} -> {value}")
-        # else:
-        #     print(f"❌ 資料庫錯誤: {error_msg}")
-        #     await interaction.followup.send(f"❌ 設定失敗：系統錯誤 ({error_msg})")
 
     
     @app_commands.command(name="set_dashboard_channel", description="設定 Dashboard 主控台顯示的頻道")

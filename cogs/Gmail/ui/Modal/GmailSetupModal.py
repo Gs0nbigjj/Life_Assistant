@@ -20,7 +20,7 @@ class GmailSetupModal(ValidatedModal):
         self.add_item(self.address)
         self.add_item(self.password)
 
-    async def execute_logic(self, interaction: discord.Interaction) -> str:
+    async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         clean_address = EmailTools()._extract_pure_email(self.address.value)
         
         self.report = EmailDatabaseManager.save_user_config(interaction.user.id, interaction.user.name, clean_address, self.password.value)
@@ -29,7 +29,7 @@ class GmailSetupModal(ValidatedModal):
         if "❌" in self.report:
             return self.report
             
-        return "完成設置信箱 等待驗證"
+        return None
 
     async def on_success(self, interaction: discord.Interaction):
         """邏輯成功後，無痕刷新 Gmail 主控台介面"""

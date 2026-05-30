@@ -15,11 +15,9 @@ class Stock(commands.Cog):
         
         # 啟動背景任務
         self.stock_monitor.start()
-        self.market_report.start()
 
     def cog_unload(self):
         self.stock_monitor.cancel()
-        self.market_report.cancel()
 
     # 指令入口 (UI)
     @app_commands.command(name="stock", description="開啟股票監控儀表板")
@@ -37,49 +35,85 @@ class Stock(commands.Cog):
     # 背景任務 (Tasks)
     @tasks.loop(minutes=1)
     async def stock_monitor(self):
-        """每分鐘檢查一次股價 (免費版序列檢查模式)"""
+        """每分鐘檢查一次股價 (免費版序列檢查模式)。"""
         now = datetime.now(TW_TZ)
-        if now.weekday() >= 5: return 
+        if now.weekday() >= 5: 
+            return 
+            
         current_time_val = now.hour * 100 + now.minute
-        if not (MARKET_OPEN <= current_time_val <= MARKET_CLOSE): return
+        if not (MARKET_OPEN <= current_time_val <= MARKET_CLOSE): 
+            return
+
+        today_date_str = now.strftime('%Y-%m-%d')
 
         try:
-            # 🌟 [修改] 改用 Manager API 獲取資料
             watches = StockManager.get_alert_watches()
-            
-            for watch in watches:
-                async with fugle_api_lock:
-                    info = get_stock_quote(watch['stock_symbol'], FUGLE_TOKEN)
-                
-                if info and info.get('lastPrice'):
-                    curr_price = info['lastPrice']
-                    change_pct = info['changePercent'] / 100
-                    
-                    alert_msg = None
-                    # 漲幅預警
-                    if watch['target_up'] and change_pct >= watch['target_up']:
-                        alert_msg = f"🔺 **{info['name']} ({watch['stock_symbol']})** 噴發！\n現價：`{curr_price}` (漲幅：`{change_pct*100:.2f}%`)"
-                    # 跌幅預警
-                    elif watch['target_down'] and change_pct <= watch['target_down']:
-                        alert_msg = f"🟢 **{info['name']} ({watch['stock_symbol']})** 下跌！\n現價：`{curr_price}` (跌幅：`{change_pct*100:.2f}%`)"
 
-                    # 發送通知並更新最後通知價格
-                    if alert_msg and watch['last_notified_price'] != curr_price:
-                        await self.send_dm(watch['user_id'], alert_msg)
-                        
-                        # 🌟 [修改] 改用 Manager API 執行更新操作
-                        StockManager.update_notified_price(watch['user_id'], watch['stock_symbol'], curr_price)
-                
-                # 免費版限流：每支股票請求後強制暫停
+            for watch in watches:
+                # 將每一筆訂閱交給獨立的處理器，完全拉平巢狀
+                await self._check_single_watch(watch, today_date_str)
                 await asyncio.sleep(1.1) 
                 
         except Exception as e:
             print(f"⚠️ 監控循環錯誤: {e}")
 
+    # ==================== 抽離出的單一股票檢查處理器 ====================
+
+    async def _check_single_watch(self, watch: dict, today_date_str: str):
+        """[輔助方法] 負責單一股票的 API 請求、條件比對與通知分發。使用衛述句全面平坦化"""
+        user_id = watch['user_id']
+        symbol = watch['stock_symbol']
+
+        # 1. 取得即時報價 (透過 fugle_api_lock 確保執行緒安全)
+        async with fugle_api_lock:
+            info = get_stock_quote(symbol, FUGLE_TOKEN)
+            
+        # 衛述句防呆：若拿不到報價或價格不合法，立刻早退
+        curr_price = info.get('lastPrice') or info.get('current')
+
+        if not info or not curr_price:
+            return
+
+        change_pct = info['changePercent'] / 100
+
+        # 2. 決定預警類型與訊息 (消滅深層的 if 嵌套)
+        alert_info = self._evaluate_alert_condition(watch, info, curr_price, change_pct, today_date_str)
+        if not alert_info:
+            return  # 未達觸發門檻，早退
+
+        alert_msg, alert_type = alert_info
+
+        # 3. 檢查最後通知價格，確認無誤後發送並寫入資料庫
+        if watch['last_notified_price'] != curr_price:
+            await self.send_dm(user_id, alert_msg)
+            StockManager.update_notified_price_and_date(
+                user_id=user_id, 
+                symbol=symbol, 
+                price=curr_price, 
+                alert_type=alert_type, 
+                date_str=today_date_str
+            )
+
+    @staticmethod
+    def _evaluate_alert_condition(watch: dict, info: dict, curr_price: float, change_pct: float, today_date_str: str) -> tuple[str, str] | None:
+        """[微小輔助方法] 專門抽離複雜的漲跌幅與日期比對邏輯"""
+        symbol = watch['stock_symbol']
+        last_up_date = watch.get('last_up_notified_date').strftime('%Y-%m-%d') if hasattr(watch.get('last_up_notified_date'), 'strftime') else watch.get('last_up_notified_date')
+        last_down_date = watch.get('last_down_notified_date').strftime('%Y-%m-%d') if hasattr(watch.get('last_down_notified_date'), 'strftime') else watch.get('last_down_notified_date')
+
+        # 漲幅預警判定
+        if watch['target_up'] and change_pct >= watch['target_up']:
+            if last_up_date != today_date_str:
+                return f"🔴 **{info['name']} ({symbol})** 噴發！\n現價：`{curr_price}` (漲幅：`{change_pct*100:.2f}%`)", "up"
+
+        # 跌幅預警判定
+        if watch['target_down'] and change_pct <= watch['target_down']:
+            if last_down_date != today_date_str:
+                return f"🟢 **{info['name']} ({symbol})** 下跌！\n現價：`{curr_price}` (跌幅：`{change_pct*100:.2f}%`)", "down"
+
+        return None
+
     @tasks.loop(time=REPORT_TIME)
-    async def market_report(self):
-        """收盤總結 (可視需求實作)"""
-        pass
 
     async def send_dm(self, user_id, content):
         """發送私訊輔助函數"""

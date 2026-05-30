@@ -41,7 +41,7 @@ def generate_donut_chart(category_name: str, stats_data: dict, target_field: str
     ax.patch.set_alpha(0.0)
 
     # 繪製圓餅圖 ( labeldistance 往內縮一點到 0.75)
-    wedges, texts = ax.pie(
+    wedges, _ = ax.pie(
         sizes, 
         labels=combined_labels, 
         labeldistance=0.75,  
@@ -54,7 +54,7 @@ def generate_donut_chart(category_name: str, stats_data: dict, target_field: str
             'va': 'center'        
         },
         # 移除 edgecolor='none'，因為 pie 本身沒 edgecolor 
-        wedgeprops=dict(width=0.45) 
+        wedgeprops={"width": 0.45}
     )
 
     center_text = f"{target_field}\n總計: {total}"

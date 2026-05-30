@@ -15,7 +15,7 @@ async def deploy_dashboard_message(bot, channel_id: int):
             print(f"⚠️ [Dashboard] 找不到頻道 ID: {channel_id}")
             return
         try:
-            await channel.purge(limit=15) 
+            await channel.purge(limit=None) 
         except Exception as e:
             print(f"⚠️ [Dashboard] 清除舊訊息失敗 (可能無權限): {e}")
 
@@ -31,6 +31,7 @@ async def deploy_dashboard_message(bot, channel_id: int):
 class SystemCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.background_tasks = set()
 
     @app_commands.command(name="dashboard", description="呼叫主控台")
     async def dashboard(self, interaction: discord.Interaction):
@@ -46,7 +47,7 @@ class SystemCog(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         await self.bot.wait_until_ready()
-        print(f"🚀 [System] 機器人已就緒，開始掃描各伺服器 Dashboard...")
+        print("🚀 [System] 機器人已就緒，開始掃描各伺服器 Dashboard...")
 
         settings_list = await asyncio.to_thread(SystemManager.get_all_dashboard_settings)
 
@@ -65,4 +66,26 @@ class SystemCog(commands.Cog):
 
             print(f"🔄 [Dashboard] 正在伺服器 '{guild.name}' ({guild_id}) 的頻道 {channel_id} 部署介面...")
             
-            asyncio.create_task(deploy_dashboard_message(self.bot, channel_id))
+            # 1. 建立任務並指派給變數
+            task = asyncio.create_task(deploy_dashboard_message(self.bot, channel_id))
+            
+            # 2. 把任務丟進集合中，確保不被回收
+            self.background_tasks.add(task)
+            
+            # 3. 讓任務跑完時，自動把自己從集合中移除，釋放記憶體
+            task.add_done_callback(self.background_tasks.discard)
+
+    @app_commands.command(name="clear", description="清理當前頻道內的所有訊息")
+    @app_commands.default_permissions(manage_messages=True)
+    async def clear(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            await interaction.channel.purge(limit=None)
+            
+            await interaction.delete_original_response()
+
+        except discord.Forbidden:
+            await interaction.followup.send("❌ 我沒有權限刪除這個頻道的訊息！請檢查機器人的身分組是否有「管理訊息」權限。", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ 清理訊息時發生錯誤: {e}", ephemeral=True)
