@@ -9,7 +9,6 @@ def stt_whisper(audio_bytes: bytes, prompt_text: str = ""):
     segments, _ = model.transcribe(
         io.BytesIO(audio_bytes), 
         beam_size=5,
-        # 使用繁體中文的暗示，並帶入動態標籤
         initial_prompt=f"這是一個關於生活紀錄的繁體中文語音。相關詞彙：{prompt_text}"
     )
     
