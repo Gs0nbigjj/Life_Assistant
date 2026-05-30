@@ -26,13 +26,16 @@
   - subcategories (list[string])
 - DELETE_CATEGORY #刪除主分類
   - category_name #主類別名稱 沒填會跳出選單給使用者選擇
+- VIEW_DIARY_CATEGORY #查看主分類
+  - category_name
 - CREATE_DIARY_RECORD #新增紀錄
+  - category_name*
 - CREATE_DIARY_SUBCATEGORY #新增標籤
   - category_name* #主類別名稱
   - subcategories (list[string]) #沒填會跳出選單給使用者
 - DELETE_DIARY_SUBCATEGORY
   - category_name* #主類別名稱
-  - subcategory (string) #沒填會跳出選單給使用者
+  - subcategory_name (string) #沒填會跳出選單給使用者
 - MODIFY_DIARY_SUBCATEGORY_EMPTY #更改標籤名稱 無資料
   - category_name*
 - MODIFY_DIARY_SUBCATEGORY_WITH_DATA #更改標籤名稱 有資料

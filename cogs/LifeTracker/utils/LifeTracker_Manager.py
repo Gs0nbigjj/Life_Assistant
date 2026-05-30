@@ -359,14 +359,21 @@ class LifeTrackerManager:
             return False, "找不到該標籤。"
 
     @staticmethod
-    def delete_subcategory(subcat_id: int):
+    def delete_subcategory(*, subcat_name: str, subcat_id: int):
         """
         刪除指定的子分類 (標籤)
         核心邏輯：在刪除標籤前，將所有關聯紀錄的 ID 設為 None，並將快照名稱更新為「其他」
         """
+        if (subcat_name is None) == (subcat_id is None):
+            raise ValueError("delete_category: 必須且只能提供 subcat_name 或 subcat_id 其中一個")
+        
         with SessionLocal() as db: 
-            subcat = db.query(TrackerSubCategory).filter(TrackerSubCategory.id == subcat_id).first()
-            
+            if subcat_id:
+                subcat = db.query(TrackerSubCategory).filter(TrackerSubCategory.id == subcat_id).first()
+            else:
+                subcat = db.query(TrackerSubCategory).filter(TrackerSubCategory.name == subcat_name).first()
+
+
             if subcat:
                 try:
                     db.query(LifeRecord).filter(LifeRecord.subcategory_id == subcat_id).update({
