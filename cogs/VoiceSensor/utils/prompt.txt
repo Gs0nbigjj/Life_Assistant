@@ -22,8 +22,8 @@
 - CREATE_CATEGORY_EMPTY #創建主分類 無資料
 - CREATE_CATEGORY_WITH_DATA #創建主分類 有資料
   - category_name* (string) #主類別名稱
-  - fields* (list[string]) #數值類別 像是["金額", "次數"]
-  - subcategories (list[string])
+  - fields* (list[string]) #數值欄位名稱，例如：金額、次數、時長、消耗卡路里等
+  - subcategories (list[string]) #標籤
 - DELETE_CATEGORY #刪除主分類
   - category_name #主類別名稱 沒填會跳出選單給使用者選擇
 - VIEW_DIARY_CATEGORY #查看主分類
