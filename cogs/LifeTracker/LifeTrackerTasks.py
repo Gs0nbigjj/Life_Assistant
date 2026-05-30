@@ -7,7 +7,7 @@ from cogs.LifeTracker.utils import LifeTrackerManager, AiAnalyzer
 from cogs.LifeTracker.src.invoice_pipeline import InvoicePipeline
 from config import TW_TZ
 
-REPORT_TIME = time(hour=0, minute=0, tzinfo=TW_TZ)
+REPORT_TIME = time(hour=0, minute=5, tzinfo=TW_TZ)
 FETCH_INVOICE_TIME = time(hour=23, minute=30, tzinfo=TW_TZ)
 
 class LifeTrackerTasks(commands.Cog):
@@ -67,7 +67,6 @@ class LifeTrackerTasks(commands.Cog):
                 else:
                     print(f"⚠️ User({uid}) 發票抓取失敗: {msg}")
                     
-                # 禮貌性延遲：每次抓完一位使用者停頓 10 秒，避免對財政部伺服器造成瞬間 DDoS
                 await asyncio.sleep(10)
                 
             print("🏁 [Task] 每日發票自動抓取任務結束！")
