@@ -3,6 +3,7 @@ from openai import AsyncOpenAI
 import asyncio
 from config import OPENROUTER_POOL
 import os
+import anyio
 classify_prompt_path = os.path.join(os.path.dirname(__file__), "classify_prompt.txt")
 summary_prompt_path = os.path.join(os.path.dirname(__file__), "summary_prompt.txt")
 class AiAnalyzer:
@@ -37,8 +38,8 @@ class AiAnalyzer:
         if not data_content or str(data_content).strip() in ["", "[]", "None"]:
             return "本週尚無相關紀錄，繼續保持追蹤習慣喔！"
 
-        with open(summary_prompt_path, "r", encoding="utf-8") as f:
-            prompt_template = f.read()
+        path = anyio.Path(summary_prompt_path)
+        prompt_template = await path.read_text(encoding="utf-8")
 
         prompt = prompt_template.replace("{category_name}", category_name)\
                                 .replace("{data_content}", str(data_content))
@@ -80,8 +81,8 @@ class AiAnalyzer:
         items_text = "\n".join([f"- {item}" for item in item_names])
         subcats_str = ", ".join(subcat_list)
 
-        with open(classify_prompt_path, "r", encoding="utf-8") as f:
-            prompt_template = f.read()
+        path = anyio.Path(classify_prompt_path)
+        prompt_template = await path.read_text(encoding="utf-8")
 
         prompt = prompt_template.replace("{subcats_str}", subcats_str)\
                                 .replace("{items_text}", items_text)
