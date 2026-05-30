@@ -58,6 +58,7 @@ class ActionHandler:
             "CREATE_GMAIL_CATEGORY_EMPTY": self._handle_create_gmail_category_empty,
             "CREATE_GMAIL_CATEGORY_WITH_DATA": self._handle_create_gmail_category_with_data,
             "DELETE_GMAIL_CATEGORY": self._handle_delete_gmail_category,
+            "VIEW_GMAIL_CATEGORY": self._handle_view_gmail_category,
             "SET_GMAIL_ACCOUNT_EMPTY": self._handle_set_gmail_account_empty,
             "SET_GMAIL_ACCOUNT_WITH_DATA": self._handle_set_gmail_account_with_data,
             "GMAIL_SETUP_GUIDE": self._handle_gmail_setup_guide,
@@ -350,6 +351,20 @@ class ActionHandler:
             embed, view = DeleteCategoryView.create_ui(message.author.id, categories)
         return embed, view, content, []
 
+    async def _handle_view_gmail_category(self, message, data):
+        await asyncio.sleep(0)
+        category_name = data.get("category_name")
+        from cogs.Gmail.utils import EmailDatabaseManager
+        categories = EmailDatabaseManager.get_user_categories(message.author.id)
+        category_id = [c['id']for c in categories if c['name']==category_name]
+        if not category_id:
+            return None, f"{category_name} 分類不存在", "", []
+        category_id = category_id[0]
+        emails = EmailDatabaseManager.get_category_emails(category_id)
+        from cogs.Gmail.ui.View.CategoryEmailPagerView import CategoryEmailPagerView
+        pager_view = CategoryEmailPagerView(message.author.id, category_name, emails)
+        return pager_view.generate_embed(), pager_view, "", []
+        
     async def _handle_set_gmail_account_empty(self, message, data):
         
         await asyncio.sleep(0)

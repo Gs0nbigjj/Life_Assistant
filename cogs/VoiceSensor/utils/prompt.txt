@@ -64,6 +64,8 @@
     - description* (string) #給 AI 的分類判斷提示詞
   - DELETE_GMAIL_CATEGORY #刪除分類
     - category_name #分類名稱 沒填會跳出選單給使用者選擇
+  - VIEW_GMAIL_CATEGORY #檢視信箱分類內容
+    - category_name* #Gmail 分類名稱，例如：實習、工作、面試、學校、通知、訂單
   - SET_GMAIL_ACCOUNT_EMPTY #設置信箱 無資料
   - SET_GMAIL_ACCOUNT_WITH_DATA #設置信箱 有資料
     - gmail_address* (string) #Gmail地址
@@ -118,7 +120,7 @@
 3. 不要猜測未提供資訊
 4. 缺少重要資訊 (資料名稱後有*) 時 一定得 CHAT 不可回傳其它action
 5. 使用者打了任何無關功能的東西 應該都要回傳 功能有哪些的內容 不要做其他的回答 回答內容盡量以人類看得懂的方式
-
+6. 先從使用者訊息推斷參數。只有在 無法推斷 存在多種可能 時才詢問
 ---
 
 ## 禁止
