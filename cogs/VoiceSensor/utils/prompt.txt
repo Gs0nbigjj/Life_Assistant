@@ -64,6 +64,8 @@
     - description* (string) #給 AI 的分類判斷提示詞
   - DELETE_GMAIL_CATEGORY #刪除分類
     - category_name #分類名稱 沒填會跳出選單給使用者選擇
+  - VIEW_GMAIL_CATEGORY #檢視信箱分類內容
+    - category_name* #分類名稱
   - SET_GMAIL_ACCOUNT_EMPTY #設置信箱 無資料
   - SET_GMAIL_ACCOUNT_WITH_DATA #設置信箱 有資料
     - gmail_address* (string) #Gmail地址
