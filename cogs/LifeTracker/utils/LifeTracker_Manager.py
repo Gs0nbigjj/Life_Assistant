@@ -280,11 +280,14 @@ class LifeTrackerManager:
             return True, None
 
     @staticmethod
-    def add_subcategory(category_id: int, subcat_names_list: list[str]):
+    def add_subcategory(*, category_name: str=None, category_id: int=None, subcat_names_list: list[str]):
         """
         新增標籤的中心邏輯
         回傳: (bool, str_or_none)
         """
+        if (category_id is None) == (category_name is None):
+            raise ValueError("delete_category: 必須且只能提供 category_id 或 category_name 其中一個")
+        
         if not subcat_names_list:
             return False, "請至少輸入一個標籤名稱。"
 
@@ -296,9 +299,15 @@ class LifeTrackerManager:
                 return False, f"標籤「{name}」過長，請限制在 {MAX_SUBCAT_LENGTH} 字內。"
 
         with SessionLocal() as db:
-            existing_subcats = db.query(TrackerSubCategory).filter(
-                TrackerSubCategory.category_id == category_id
-            ).all()
+            if category_id:
+                existing_subcats = db.query(TrackerSubCategory).filter(
+                    TrackerSubCategory.category_id == category_id
+                ).all()
+            else:
+                existing_subcats = db.query(TrackerSubCategory).filter(
+                    TrackerSubCategory.name == category_name
+                ).all()
+
             existing_names = [s.name for s in existing_subcats]
 
             for name in subcat_names_list:

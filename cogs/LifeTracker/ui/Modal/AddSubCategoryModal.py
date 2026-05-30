@@ -10,9 +10,10 @@ from cogs.LifeTracker.LifeTracker_config import (
 )
 
 class AddSubCategoryModal(ValidatedModal):
-    def __init__(self, bot, category_id: int):
+    def __init__(self, bot, *, category_name: str=None, category_id: int=None):
         super().__init__(title="🏷️ 新增標籤")
         self.bot = bot
+        self.category_name = category_name
         self.category_id = category_id
 
         self.subcat_names_input = ui.TextInput(
@@ -26,8 +27,11 @@ class AddSubCategoryModal(ValidatedModal):
     async def execute_logic(self, interaction: discord.Interaction) -> str | None:
         new_names = [n.strip() for n in self.subcat_names_input.value.split() if n.strip()]
         
-        success, error_msg = LifeTrackerManager.add_subcategory(self.category_id, new_names)
-        
+        if self.category_id:
+            success, error_msg = LifeTrackerManager.add_subcategory(category_id=self.category_id, subcat_names_list=new_names)
+        else:
+            success, error_msg = LifeTrackerManager.add_subcategory(category_name=self.category_name, subcat_names_list=new_names)
+
         if not success:
             return error_msg
         return None

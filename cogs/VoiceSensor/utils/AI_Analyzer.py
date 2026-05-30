@@ -26,7 +26,7 @@ class AiAnalyzer:
         now = datetime.now(TW_TZ)
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
         content = f"現在時間為 {now_str}\n"
-        content = prompt
+        content += prompt
         if memory:
             content += "\n\n上次的記憶為:\n" + memory
         content += "\n\n使用者文字為:\n" + text
