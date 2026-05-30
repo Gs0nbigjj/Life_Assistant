@@ -1,7 +1,8 @@
 import json
 import os
+from datetime import datetime
 from openai import AsyncOpenAI
-from config import OPENROUTER_API_KEY, COGS_DIR
+from config import OPENROUTER_API_KEY, COGS_DIR, TW_TZ
 
 # 初始化 OpenRouter 客戶端
 client = AsyncOpenAI(
@@ -23,6 +24,9 @@ class AI_Analyzer:
         判斷使用者的語音意圖
         """
         print("開始分析文字意圖")
+        now = datetime.now(TW_TZ)
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        content = f"現在時間為 {now_str}\n"
         content = prompt
         if memory:
             content += "\n\n上次的記憶為:\n" + memory
