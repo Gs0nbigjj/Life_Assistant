@@ -35,10 +35,10 @@ class VoiceSensorCog(commands.Cog):
             try:
                 audio_data = await voice_file.read()
 
-                try:
+                '''try:
                     await message.delete()
                 except discord.HTTPException:
-                    pass
+                    pass'''
                 # 👉 語音轉文字
                 recognized_text = stt_whisper(audio_data)
 
