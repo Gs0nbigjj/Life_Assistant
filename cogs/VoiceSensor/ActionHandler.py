@@ -42,7 +42,7 @@ class ActionHandler:
             "CREATE_CATEGORY_WITH_DATA": self._handle_create_category_with_data,
             "DELETE_CATEGORY": self._handle_delete_category,
             "VIEW_DIARY_CATEGORY": self._handle_view_diary_category,
-            "CREATE_DIARY_RECORD": self._handle_create_diary_record,
+            "CREATE_DIARY_RECORD_EMPTY": self._handle_create_diary_record_empty,
             "CREATE_DIARY_SUBCATEGORY": self._handle_create_diary_subcategory,
             "DELETE_DIARY_SUBCATEGORY": self._handle_delete_diary_subcategory,
             "MODIFY_DIARY_SUBCATEGORY_EMPTY": self._handle_modify_diary_subcategory_empty,
@@ -166,7 +166,7 @@ class ActionHandler:
         embed, view, chart_file = await CategoryDetailView.create_ui(self.bot, category_id)
         return embed, view, "", ([chart_file] if chart_file else [])
 
-    async def _handle_create_diary_record(self, message, data):
+    async def _handle_create_diary_record_empty(self, message, data):
         await asyncio.sleep(0)
         category_name = data.get('category_name')
         try: category_id = name_to_id(TrackerCategory, category_name)
