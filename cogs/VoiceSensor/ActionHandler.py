@@ -43,6 +43,7 @@ class ActionHandler:
             "DELETE_CATEGORY": self._handle_delete_category,
             "VIEW_DIARY_CATEGORY": self._handle_view_diary_category,
             "CREATE_DIARY_RECORD_EMPTY": self._handle_create_diary_record_empty,
+            "CREATE_DIARY_RECORD_WITH_DATA": self._handle_create_diary_record_with_data,
             "CREATE_DIARY_SUBCATEGORY": self._handle_create_diary_subcategory,
             "DELETE_DIARY_SUBCATEGORY": self._handle_delete_diary_subcategory,
             "MODIFY_DIARY_SUBCATEGORY_EMPTY": self._handle_modify_diary_subcategory_empty,
@@ -186,6 +187,38 @@ class ActionHandler:
         embed, view = view_tmp.build_ui()
         return embed, view, "", []
         
+    async def _handle_create_diary_record_with_data(self, message, data):
+        category_name = data.get('category_name')
+        subcategory_name = data.get('subcategory_name')
+        from database.db import SessionLocal
+        with SessionLocal() as db:
+            try:
+                cat_result = name_to_id(TrackerCategory, category_name, db=db)
+                category_id = cat_result.id if hasattr(cat_result, 'id') else cat_result
+                
+                subcat_result = name_to_id(TrackerSubCategory, subcategory_name, db=db)
+                subcat_id = subcat_result.id if hasattr(subcat_result, 'id') else subcat_result
+            except NameError as err_msg: 
+                return None, None, err_msg, []
+        fields_and_values = data.get('fields_and_values')
+        note = data.get('note')
+        record_time = data.get('record_time')
+        success, error_msg = LifeTrackerManager.add_life_record(
+            user_id=message.author.id,
+            category_id=category_id,
+            subcat_id=subcat_id,
+            values_dict=fields_and_values,
+            note=note,
+            record_time_str=record_time
+        )
+        if not success:
+            return None, None, error_msg, []
+        from cogs.LifeTracker.ui.View.CategoryDetailView import CategoryDetailView
+        
+        embed, view, chart_file = await CategoryDetailView.create_ui(self.bot, category_id, page=0)
+        attachments = [chart_file] if chart_file else []
+        return embed, view, "", attachments
+
     async def _handle_create_diary_subcategory(self, message, data):
         category_name = data.get('category_name')
         subcategories = data.get('subcategories')

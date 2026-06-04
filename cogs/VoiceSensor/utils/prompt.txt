@@ -3,7 +3,6 @@
 你的任務：
 把使用者自然語言轉成「標準 JSON 操作指令」。
 
-
 ---
 
 接下來以
@@ -32,7 +31,10 @@
   - category_name* (string)
 - CREATE_DIARY_RECORD_WITH_DATA #新增紀錄 有資料
   - category_name* (string)
-  - list[tuple[int, str]] #標籤名稱 數值
+  - subcategory_name* (string) #標籤名稱 數值
+  - fields_and_values* (dict[string, int]) #數值欄位名稱為KEY 數值為VALUE 1~3個
+  - record_time* (string) #紀錄時間 格式YYYY/MM/DD
+  - note (string) #備註
 - CREATE_DIARY_SUBCATEGORY #新增標籤
   - category_name* #主類別名稱
   - subcategories (list[string]) #沒填會跳出選單給使用者
