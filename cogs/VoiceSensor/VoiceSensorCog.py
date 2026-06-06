@@ -75,9 +75,4 @@ class VoiceSensorCog(commands.Cog):
             result,
             mem.memory_text if mem else None
         )
-        actions = result.get("actions", [])
-        
-        if not actions:
-            return await processing_msg.edit(content="❌ 無法解析操作")
-
-        await self.action_handler.handle_actions(message, processing_msg, actions)
+        await self.action_handler.handle_actions(message, processing_msg, result)
