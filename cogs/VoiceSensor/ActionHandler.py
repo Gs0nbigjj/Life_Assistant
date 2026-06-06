@@ -19,10 +19,10 @@ class ActionHandler:
     async def enrich_actions_context(self, message, text, result, memory, *, ALL=False):
         if DEBUG:
             self.channel = message.channel
+        more_content_parts = []
+        needs_parts = {}
         if result:
             actions = result.get("actions", [])
-            more_content_parts = []
-            needs_parts = {}
             for step in actions:
                 action = step.get("action")
                 # Gmail 分類相關
