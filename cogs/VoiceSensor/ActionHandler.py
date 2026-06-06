@@ -15,6 +15,101 @@ class ActionHandler:
     def __init__(self, bot):
         self.bot = bot
 
+    async def enrich_actions_context(self, message, text, result, memory):
+        actions = result.get("actions", [])
+        more_content_parts = []
+        needs_parts = {}
+        for step in actions:
+            action = step.get("action")
+            # Gmail 分類相關
+            if action in [
+                "DELETE_GMAIL_CATEGORY",
+                "VIEW_GMAIL_CATEGORY_CONTENT"
+            ]:
+                needs_parts["Gmail"] = True
+                
+            # LifeTracker 分類相關
+            elif action in ["DELETE_CATEGORY"]:
+                needs_parts["LifeTracker_del_cat"] = True
+
+            elif action in [
+                "VIEW_DIARY_CATEGORY",
+                "CREATE_DIARY_RECORD_EMPTY",
+                "CREATE_DIARY_SUBCATEGORY",
+                "MODIFY_DIARY_SUBCATEGORY_EMPTY",
+            ]:
+                needs_parts["LifeTracker_cat"] = True
+            elif action in [
+                "DELETE_DIARY_SUBCATEGORY",
+                "MODIFY_DIARY_SUBCATEGORY_WITH_DATA"
+            ]:
+                needs_parts["LifeTracker_subcat"] = True
+            elif action in [
+                "CREATE_DIARY_RECORD_WITH_DATA"
+            ]:
+                needs_parts["LifeTracker_subcat_field"] = True
+            
+            # 股票分類相關
+            elif action in [
+                "REMOVE_STOCK_MONITOR"
+            ]:
+                needs_parts['Stock'] = True
+
+        if needs_parts.get("Stock"):
+            stocks = StockManager.get_user_stocks(message.author.id)
+            stock_details = [f'name:{s.stock_name} code/symbol{s.stock_symbol}:' for s in stocks]
+            more_content_parts.append(ActionHandler.list_text_format("目前股票監控", stock_details, indent=1))
+
+        if needs_parts.get("Gmail"):
+            categories = EmailDatabaseManager.get_user_categories(message.author.id)
+            names = [c["name"] for c in categories]
+            more_content_parts.append(ActionHandler.list_text_format(" Gmail 分類", names))
+        
+        if needs_parts.get("LifeTracker_del_cat"):
+            cats = LifeTrackerManager.get_deletable_categories(user_id=message.author.id)
+            names = [c.name for c in cats]
+            more_content_parts.append(ActionHandler.list_text_format("生活日記可刪除主分類", names))
+        
+        # only trigger one
+        if needs_parts.get("LifeTracker_subcat_field"):
+            texts = []
+            cats = LifeTrackerManager.get_user_categories(user_id=message.author.id)
+            ids = [c.id for c in cats]
+            for id in ids:
+                cat_info, subcats_info = LifeTrackerManager.get_category_details(id)
+                sub_names = [c.name for c in subcats_info]
+                texts.append(ActionHandler.list_text_format(f" {cat_info.name} 標籤名稱", sub_names, indent=1))
+                texts.append(ActionHandler.list_text_format(f" {cat_info.name} 數值類別", cat_info.fields, indent=1))
+            more_content_parts.append('\n'.join(texts))
+        elif needs_parts.get("LifeTracker_subcat"):
+            texts = []
+            cats = LifeTrackerManager.get_user_categories(user_id=message.author.id)
+            ids = [c.id for c in cats]
+            for id in ids:
+                cat_info, subcats_info = LifeTrackerManager.get_category_details(id)
+                sub_names = [c.name for c in subcats_info]
+                texts.append(ActionHandler.list_text_format(f" {cat_info.name} 目前的標籤名稱", sub_names))
+            more_content_parts.append('\n'.join(texts))
+        elif needs_parts.get("LifeTracker_cat"):
+            cats = LifeTrackerManager.get_user_categories(user_id=message.author.id)
+            names = [c.name for c in cats]
+            more_content_parts.append(ActionHandler.list_text_format("生活日記主分類", names))
+
+        if not more_content_parts:
+            return result
+        more_content = "\n\n".join(more_content_parts)
+        print("===== 額外上下文 =====")
+        print(more_content)
+
+        from cogs.VoiceSensor.utils import AiAnalyzer
+        new_result = await AiAnalyzer.parse_ui_action(
+            text=text,
+            memory=memory,
+            more_content=more_content
+        )
+
+        return new_result
+        
     async def handle_actions(self, message, processing_msg, actions):
         embed, view, content, attachments = None, None, "", []
         for step in actions:
@@ -60,6 +155,7 @@ class ActionHandler:
             "CREATE_GMAIL_CATEGORY_WITH_DATA": self._handle_create_gmail_category_with_data,
             "DELETE_GMAIL_CATEGORY": self._handle_delete_gmail_category,
             "VIEW_GMAIL_CATEGORY": self._handle_view_gmail_category,
+            "VIEW_GMAIL_CATEGORY_CONTENT": self._handle_view_gmail_category_content,
             "SET_GMAIL_ACCOUNT_EMPTY": self._handle_set_gmail_account_empty,
             "SET_GMAIL_ACCOUNT_WITH_DATA": self._handle_set_gmail_account_with_data,
             "GMAIL_SETUP_GUIDE": self._handle_gmail_setup_guide,
@@ -422,9 +518,13 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_view_gmail_category(self, message, data):
+        categories = EmailDatabaseManager.get_user_categories(message.author.id)
+        name_list = [c["name"] for c in categories]
+        return None, None, ActionHandler.list_text_format(" Gmail 分類", name_list), []
+    
+    async def _handle_view_gmail_category_content(self, message, data):
         await asyncio.sleep(0)
         category_name = data.get("category_name")
-        from cogs.Gmail.utils import EmailDatabaseManager
         categories = EmailDatabaseManager.get_user_categories(message.author.id)
         category_id = [c['id']for c in categories if c['name']==category_name]
         if not category_id:
@@ -544,3 +644,9 @@ class ActionHandler:
         view = discord.ui.View(timeout=60)
         view.add_item(button)
         return view
+    
+    @staticmethod
+    def list_text_format(cat_name, list, indent=0):
+        if not indent and not list:
+            return f"目前的{cat_name}內是空的。"
+        return f"目前的{cat_name}有：\n" + "\n".join(f"{" "*2*indent}- {x}" for x in list)

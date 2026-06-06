@@ -37,7 +37,7 @@ class AiAnalyzer:
             return True
 
     @staticmethod
-    async def parse_ui_action(text: str, memory=None):
+    async def parse_ui_action(text: str, memory=None, more_content=None):
         """
         判斷使用者的語音意圖
         """
@@ -48,7 +48,10 @@ class AiAnalyzer:
         content = f"現在時間為 {now_str}\n"
         content += prompt
         if memory:
-            content += "\n\n上次的記憶為:\n" + memory
+            content += "\n\n上次的記憶為:\n" + memory        
+        if more_content:
+            content += "\n\n額外資訊:\n" + more_content
+        
         content += "\n\n使用者文字為:\n" + text
         
         while True:
