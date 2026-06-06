@@ -68,11 +68,7 @@ class VoiceSensorCog(commands.Cog):
     async def process_text(self, text: str, message, processing_msg):
         # 1️⃣ 呼叫 AI
         mem = get_mem(message.author.id, message.author.name)
-        result = await AiAnalyzer.parse_ui_action(text, mem.memory_text if mem else None)
-        result = await self.action_handler.enrich_actions_context(
-            message,
-            text,
-            result,
-            mem.memory_text if mem else None
-        )
+        # result = await AiAnalyzer.parse_ui_action(text, mem.memory_text if mem else None)
+        # result = await self.action_handler.enrich_actions_context(message,text,result,mem.memory_text if mem else None)
+        result = await self.action_handler.enrich_actions_context(message,text,"",mem.memory_text if mem else None, ALL=True)
         await self.action_handler.handle_actions(message, processing_msg, result)

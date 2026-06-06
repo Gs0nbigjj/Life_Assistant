@@ -16,65 +16,66 @@ class ActionHandler:
     def __init__(self, bot):
         self.bot = bot
 
-    async def enrich_actions_context(self, message, text, result, memory):
+    async def enrich_actions_context(self, message, text, result, memory, *, ALL=False):
         if DEBUG:
             self.channel = message.channel
-        actions = result.get("actions", [])
-        more_content_parts = []
-        needs_parts = {}
-        for step in actions:
-            action = step.get("action")
-            # Gmail 分類相關
-            if action in [
-                "DELETE_GMAIL_CATEGORY",
-                "VIEW_GMAIL_CATEGORY_CONTENT"
-            ]:
-                needs_parts["Gmail"] = True
+        if result:
+            actions = result.get("actions", [])
+            more_content_parts = []
+            needs_parts = {}
+            for step in actions:
+                action = step.get("action")
+                # Gmail 分類相關
+                if action in [
+                    "DELETE_GMAIL_CATEGORY",
+                    "VIEW_GMAIL_CATEGORY_CONTENT"
+                ]:
+                    needs_parts["Gmail"] = True
+                    
+                # LifeTracker 分類相關
+                elif action in ["DELETE_CATEGORY"]:
+                    needs_parts["LifeTracker_del_cat"] = True
+
+                elif action in [
+                    "VIEW_DIARY_CATEGORY",
+                    "CREATE_DIARY_RECORD_EMPTY",
+                    "CREATE_DIARY_SUBCATEGORY",
+                    "MODIFY_DIARY_SUBCATEGORY_EMPTY",
+                ]:
+                    needs_parts["LifeTracker_cat"] = True
+                elif action in [
+                    "DELETE_DIARY_SUBCATEGORY",
+                    "MODIFY_DIARY_SUBCATEGORY_WITH_DATA"
+                ]:
+                    needs_parts["LifeTracker_subcat"] = True
+                elif action in [
+                    "CREATE_DIARY_RECORD_WITH_DATA"
+                ]:
+                    needs_parts["LifeTracker_subcat_field"] = True
                 
-            # LifeTracker 分類相關
-            elif action in ["DELETE_CATEGORY"]:
-                needs_parts["LifeTracker_del_cat"] = True
+                # 股票分類相關
+                elif action in [
+                    "REMOVE_STOCK_MONITOR"
+                ]:
+                    needs_parts['Stock'] = True
 
-            elif action in [
-                "VIEW_DIARY_CATEGORY",
-                "CREATE_DIARY_RECORD_EMPTY",
-                "CREATE_DIARY_SUBCATEGORY",
-                "MODIFY_DIARY_SUBCATEGORY_EMPTY",
-            ]:
-                needs_parts["LifeTracker_cat"] = True
-            elif action in [
-                "DELETE_DIARY_SUBCATEGORY",
-                "MODIFY_DIARY_SUBCATEGORY_WITH_DATA"
-            ]:
-                needs_parts["LifeTracker_subcat"] = True
-            elif action in [
-                "CREATE_DIARY_RECORD_WITH_DATA"
-            ]:
-                needs_parts["LifeTracker_subcat_field"] = True
-            
-            # 股票分類相關
-            elif action in [
-                "REMOVE_STOCK_MONITOR"
-            ]:
-                needs_parts['Stock'] = True
-
-        if needs_parts.get("Stock"):
+        if needs_parts.get("Stock") or ALL:
             stocks = StockManager.get_user_stocks(message.author.id)
             stock_details = [f'name:{s.stock_name} code/symbol{s.stock_symbol}:' for s in stocks]
             more_content_parts.append(ActionHandler.list_text_format("目前股票監控", stock_details, indent=1))
 
-        if needs_parts.get("Gmail"):
+        if needs_parts.get("Gmail") or ALL:
             categories = EmailDatabaseManager.get_user_categories(message.author.id)
             names = [c["name"] for c in categories]
             more_content_parts.append(ActionHandler.list_text_format(" Gmail 分類", names))
         
-        if needs_parts.get("LifeTracker_del_cat"):
+        if needs_parts.get("LifeTracker_del_cat") or ALL:
             cats = LifeTrackerManager.get_deletable_categories(user_id=message.author.id)
             names = [c.name for c in cats]
             more_content_parts.append(ActionHandler.list_text_format("生活日記可刪除主分類", names))
         
         # only trigger one
-        if needs_parts.get("LifeTracker_subcat_field"):
+        if needs_parts.get("LifeTracker_subcat_field") or ALL:
             texts = []
             cats = LifeTrackerManager.get_user_categories(user_id=message.author.id)
             ids = [c.id for c in cats]
@@ -90,7 +91,7 @@ class ActionHandler:
             ids = [c.id for c in cats]
             for id in ids:
                 cat_info, subcats_info = LifeTrackerManager.get_category_details(id)
-                sub_names = [c.name for c in subcats_info]
+                sub_names = [c['name'] for c in subcats_info]
                 texts.append(ActionHandler.list_text_format(f" {cat_info.name} 目前的標籤名稱", sub_names))
             more_content_parts.append('\n'.join(texts))
         elif needs_parts.get("LifeTracker_cat"):
@@ -104,9 +105,10 @@ class ActionHandler:
         print("===== 額外上下文 =====")
         print(more_content)
         if DEBUG:
-            await self.channel.send("===== 額外上下文 =====\n" + more_content)
-            import json
-            await self.channel.send("原json:\n" + json.dumps(result, ensure_ascii=False))
+            await self.channel.send("===== 額外上下文 =====\n" + more_content + '\n')
+            if result:
+                import json
+                await self.channel.send("原json:\n" + json.dumps(result, ensure_ascii=False) + '\n')
 
         from cogs.VoiceSensor.utils import AiAnalyzer
         new_result = await AiAnalyzer.parse_ui_action(
@@ -120,7 +122,7 @@ class ActionHandler:
     async def handle_actions(self, message, processing_msg, result):
         if DEBUG:
             import json
-            await self.channel.send("json:\n" + json.dumps(result, ensure_ascii=False))
+            await self.channel.send("json:\n" + json.dumps(result, ensure_ascii=False) + '\n')
         
         actions = result.get("actions", [])
         if not actions:
