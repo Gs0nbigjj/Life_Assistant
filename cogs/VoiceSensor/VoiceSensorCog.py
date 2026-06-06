@@ -69,7 +69,7 @@ class VoiceSensorCog(commands.Cog):
         # 1️⃣ 呼叫 AI
         mem = get_mem(message.author.id, message.author.name)
         result = await AiAnalyzer.parse_ui_action(text, mem.memory_text if mem else None)
-        result = await self.enrich_actions_context(
+        result = await self.action_handler.enrich_actions_context(
             message,
             text,
             result,
