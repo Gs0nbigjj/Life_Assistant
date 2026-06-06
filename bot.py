@@ -7,6 +7,7 @@ import datetime
 from database.db import init_db, SessionLocal
 from database.models import BotSettings
 from database.db_utils import get_botsettings
+from config import COGS_DIR, DISCORD_BOT_TOKEN, RENDER, TW_TZ
 
 from config import COGS_DIR, DISCORD_BOT_TOKEN, RENDER
 
@@ -45,7 +46,7 @@ async def send_login_notifications(now: str):
 
 @bot.event
 async def on_ready():
-    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now = datetime.datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
     print(f"目前登入身份 --> {bot.user}")
 
     # 同步斜線指令
