@@ -83,7 +83,7 @@ class ActionHandler:
                 cat_info, subcats_info = LifeTrackerManager.get_category_details(id)
                 sub_names = [c['name'] for c in subcats_info]
                 texts.append(ActionHandler.list_text_format(f" {cat_info['name']} 標籤名稱", sub_names, indent=1))
-                texts.append(ActionHandler.list_text_format(f" {cat_info['name']} 數值類別", cat_info.fields, indent=1))
+                texts.append(ActionHandler.list_text_format(f" {cat_info['name']} 數值類別", cat_info['fields'], indent=1))
             more_content_parts.append('\n'.join(texts))
         elif needs_parts.get("LifeTracker_subcat"):
             texts = []
