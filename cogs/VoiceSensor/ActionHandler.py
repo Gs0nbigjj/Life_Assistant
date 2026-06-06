@@ -104,9 +104,9 @@ class ActionHandler:
         print("===== 額外上下文 =====")
         print(more_content)
         if DEBUG:
-            self.channel.send("===== 額外上下文 =====\n" + more_content)
+            await self.channel.send("===== 額外上下文 =====\n" + more_content)
             import json
-            self.channel.send("原json:\n" + json.dumps(result))
+            await self.channel.send("原json:\n" + json.dumps(result))
 
         from cogs.VoiceSensor.utils import AiAnalyzer
         new_result = await AiAnalyzer.parse_ui_action(
@@ -120,7 +120,7 @@ class ActionHandler:
     async def handle_actions(self, message, processing_msg, result):
         if DEBUG:
             import json
-            self.channel.send("json:\n" + json.dumps(result))
+            await self.channel.send("json:\n" + json.dumps(result))
         
         actions = result.get("actions", [])
         if not actions:
