@@ -649,4 +649,4 @@ class ActionHandler:
     def list_text_format(cat_name, list, indent=0):
         if not indent and not list:
             return f"目前的{cat_name}內是空的。"
-        return f"目前的{cat_name}有：\n" + "\n".join(f"{" "*2*indent}- {x}" for x in list)
+        return f"目前的{cat_name}有：\n" + "\n".join(f'{" "*2*indent}- {x}' for x in list)
