@@ -9,13 +9,125 @@ from cogs.Stock.utils import StockManager
 from cogs.Stock.ui.View.StockDashboardView import StockDashboardView
 import asyncio
 from database.models import TrackerCategory, TrackerSubCategory
-        
+
+DEBUG = True
             
 class ActionHandler:
     def __init__(self, bot):
         self.bot = bot
 
-    async def handle_actions(self, message, processing_msg, actions):
+    async def enrich_actions_context(self, message, text, result, memory, *, ALL=False):
+        if DEBUG:
+            self.channel = message.channel
+        more_content_parts = []
+        needs_parts = {}
+        if result:
+            actions = result.get("actions", [])
+            for step in actions:
+                action = step.get("action")
+                # Gmail 分類相關
+                if action in [
+                    "DELETE_GMAIL_CATEGORY",
+                    "VIEW_GMAIL_CATEGORY_CONTENT"
+                ]:
+                    needs_parts["Gmail"] = True
+                    
+                # LifeTracker 分類相關
+                elif action in ["DELETE_CATEGORY"]:
+                    needs_parts["LifeTracker_del_cat"] = True
+
+                elif action in [
+                    "VIEW_DIARY_CATEGORY",
+                    "CREATE_DIARY_RECORD_EMPTY",
+                    "CREATE_DIARY_SUBCATEGORY",
+                    "MODIFY_DIARY_SUBCATEGORY_EMPTY",
+                ]:
+                    needs_parts["LifeTracker_cat"] = True
+                elif action in [
+                    "DELETE_DIARY_SUBCATEGORY",
+                    "MODIFY_DIARY_SUBCATEGORY_WITH_DATA"
+                ]:
+                    needs_parts["LifeTracker_subcat"] = True
+                elif action in [
+                    "CREATE_DIARY_RECORD_WITH_DATA"
+                ]:
+                    needs_parts["LifeTracker_subcat_field"] = True
+                
+                # 股票分類相關
+                elif action in [
+                    "REMOVE_STOCK_MONITOR"
+                ]:
+                    needs_parts['Stock'] = True
+
+        if ALL or needs_parts.get("Stock"):
+            stocks = StockManager.get_user_stocks(message.author.id)
+            stock_details = [f'name:{s.stock_name} code/symbol{s.stock_symbol}:' for s in stocks]
+            more_content_parts.append(ActionHandler.list_text_format("目前股票監控", stock_details, indent=1))
+
+        if ALL or needs_parts.get("Gmail"):
+            categories = EmailDatabaseManager.get_user_categories(message.author.id)
+            names = [c["name"] for c in categories]
+            more_content_parts.append(ActionHandler.list_text_format(" Gmail 分類", names))
+        
+        if ALL or needs_parts.get("LifeTracker_del_cat"):
+            cats = LifeTrackerManager.get_deletable_categories(user_id=message.author.id)
+            names = [c.name for c in cats]
+            more_content_parts.append(ActionHandler.list_text_format("生活日記可刪除主分類", names))
+        
+        # only trigger one
+        if ALL or needs_parts.get("LifeTracker_subcat_field"):
+            texts = []
+            cats = LifeTrackerManager.get_user_categories(user_id=message.author.id)
+            ids = [c.id for c in cats]
+            for id in ids:
+                cat_info, subcats_info = LifeTrackerManager.get_category_details(id)
+                sub_names = [c['name'] for c in subcats_info]
+                texts.append(ActionHandler.list_text_format(f" {cat_info['name']} 標籤名稱", sub_names, indent=1))
+                texts.append(ActionHandler.list_text_format(f" {cat_info['name']} 數值類別", cat_info.fields, indent=1))
+            more_content_parts.append('\n'.join(texts))
+        elif needs_parts.get("LifeTracker_subcat"):
+            texts = []
+            cats = LifeTrackerManager.get_user_categories(user_id=message.author.id)
+            ids = [c.id for c in cats]
+            for id in ids:
+                cat_info, subcats_info = LifeTrackerManager.get_category_details(id)
+                sub_names = [c['name'] for c in subcats_info]
+                texts.append(ActionHandler.list_text_format(f" {cat_info['name']} 目前的標籤名稱", sub_names))
+            more_content_parts.append('\n'.join(texts))
+        elif needs_parts.get("LifeTracker_cat"):
+            cats = LifeTrackerManager.get_user_categories(user_id=message.author.id)
+            names = [c.name for c in cats]
+            more_content_parts.append(ActionHandler.list_text_format("生活日記主分類", names))
+
+        if not more_content_parts:
+            return result
+        more_content = "\n\n".join(more_content_parts)
+        print("===== 額外上下文 =====")
+        print(more_content)
+        if DEBUG:
+            await self.channel.send("===== 額外上下文 =====\n" + more_content + '\n')
+            if result:
+                import json
+                await self.channel.send("原json:\n" + json.dumps(result, ensure_ascii=False) + '\n')
+
+        from cogs.VoiceSensor.utils import AiAnalyzer
+        new_result = await AiAnalyzer.parse_ui_action(
+            text=text,
+            memory=memory,
+            more_content=more_content
+        )
+
+        return new_result
+        
+    async def handle_actions(self, message, processing_msg, result):
+        if DEBUG:
+            import json
+            await self.channel.send("json:\n" + json.dumps(result, ensure_ascii=False) + '\n')
+        
+        actions = result.get("actions", [])
+        if not actions:
+            return await processing_msg.edit(content="❌ 無法解析操作")
+
         embed, view, content, attachments = None, None, "", []
         for step in actions:
             pack = await self.execute_action(message, step)
@@ -42,7 +154,8 @@ class ActionHandler:
             "CREATE_CATEGORY_WITH_DATA": self._handle_create_category_with_data,
             "DELETE_CATEGORY": self._handle_delete_category,
             "VIEW_DIARY_CATEGORY": self._handle_view_diary_category,
-            "CREATE_DIARY_RECORD": self._handle_create_diary_record,
+            "CREATE_DIARY_RECORD_EMPTY": self._handle_create_diary_record_empty,
+            "CREATE_DIARY_RECORD_WITH_DATA": self._handle_create_diary_record_with_data,
             "CREATE_DIARY_SUBCATEGORY": self._handle_create_diary_subcategory,
             "DELETE_DIARY_SUBCATEGORY": self._handle_delete_diary_subcategory,
             "MODIFY_DIARY_SUBCATEGORY_EMPTY": self._handle_modify_diary_subcategory_empty,
@@ -59,6 +172,7 @@ class ActionHandler:
             "CREATE_GMAIL_CATEGORY_WITH_DATA": self._handle_create_gmail_category_with_data,
             "DELETE_GMAIL_CATEGORY": self._handle_delete_gmail_category,
             "VIEW_GMAIL_CATEGORY": self._handle_view_gmail_category,
+            "VIEW_GMAIL_CATEGORY_CONTENT": self._handle_view_gmail_category_content,
             "SET_GMAIL_ACCOUNT_EMPTY": self._handle_set_gmail_account_empty,
             "SET_GMAIL_ACCOUNT_WITH_DATA": self._handle_set_gmail_account_with_data,
             "GMAIL_SETUP_GUIDE": self._handle_gmail_setup_guide,
@@ -103,21 +217,18 @@ class ActionHandler:
 
     # --- 2. 記帳模組 ---
     async def _handle_life_diary(self, message, data):
-        
         await asyncio.sleep(0)
         from cogs.LifeTracker.ui.View import LifeDashboardView
         embed, view = LifeDashboardView.create_dashboard(self.bot, message.author.id)
         return embed, view, "", []
 
     async def _handle_create_category_empty(self, message, data):
-        
         await asyncio.sleep(0)
         from cogs.LifeTracker.ui.Button.SetupBtn import SetupBtn
         view = ActionHandler.get_button_view(SetupBtn(self.bot))
         return None, view, "", []
 
     async def _handle_create_category_with_data(self, message, data):
-        
         await asyncio.sleep(0)
         embed, view, content = None, None, ""
         property_names = ["category_name", "fields", "subcategories"]
@@ -139,7 +250,6 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_delete_category(self, message, data):
-        
         await asyncio.sleep(0)
         embed, view, content = None, None, ""
         name = data.get("category_name", "").strip()
@@ -161,40 +271,95 @@ class ActionHandler:
         category_name = data.get('category_name')
         if category_name is None:
             return await self._handle_life_diary(message, data)
-        try: category_id = name_to_id(TrackerCategory, category_name)
-        except NameError as err_msg: return None, None, err_msg, []
+            
+        try: 
+            cat_result = name_to_id(TrackerCategory, category_name)
+            category_id = cat_result.id if hasattr(cat_result, 'id') else cat_result
+        except NameError as err_msg: 
+            return None, None, err_msg, []
+            
         embed, view, chart_file = await CategoryDetailView.create_ui(self.bot, category_id)
         return embed, view, "", ([chart_file] if chart_file else [])
 
-    async def _handle_create_diary_record(self, message, data):
+    async def _handle_create_diary_record_empty(self, message, data):
         await asyncio.sleep(0)
         category_name = data.get('category_name')
-        try: category_id = name_to_id(TrackerCategory, category_name)
-        except NameError as err_msg: return None, None, err_msg, []
+        
+        try: 
+            cat_result = name_to_id(TrackerCategory, category_name)
+            category_id = cat_result.id if hasattr(cat_result, 'id') else cat_result
+        except NameError as err_msg: 
+            return None, None, err_msg, []
         
         from cogs.LifeTracker.ui.View.LogRecordView import LogRecordView
         cat_info, subcats_info = LifeTrackerManager.get_category_details(category_id)
         if not cat_info:
             return None, None, "❌ 發生錯誤：找不到該分類資訊", []
+            
         view_tmp = LogRecordView(self.bot, category_id, cat_info, subcats_info)
         embed, view = view_tmp.build_ui()
         return embed, view, "", []
         
+    async def _handle_create_diary_record_with_data(self, message, data):
+        category_name = data.get('category_name')
+        subcategory_name = data.get('subcategory_name')
+        from database.db import SessionLocal
+        with SessionLocal() as db:
+            try:
+                cat_result = name_to_id(TrackerCategory, category_name, db=db)
+                category_id = cat_result.id if hasattr(cat_result, 'id') else cat_result
+                
+                subcat_result = name_to_id(TrackerSubCategory, subcategory_name, db=db)
+                subcat_id = subcat_result.id if hasattr(subcat_result, 'id') else subcat_result
+            except NameError as err_msg: 
+                return None, None, err_msg, []
+        fields_and_values = data.get('fields_and_values')
+        note = data.get('note')
+        record_time = data.get('record_time')
+        success, error_msg = LifeTrackerManager.add_life_record(
+            user_id=message.author.id,
+            category_id=category_id,
+            subcat_id=subcat_id,
+            values_dict=fields_and_values,
+            note=note,
+            record_time_str=record_time
+        )
+        if not success:
+            return None, None, error_msg, []
+        from cogs.LifeTracker.ui.View.CategoryDetailView import CategoryDetailView
+        
+        embed, view, chart_file = await CategoryDetailView.create_ui(self.bot, category_id, page=0)
+        attachments = [chart_file] if chart_file else []
+        return embed, view, "", attachments
+
     async def _handle_create_diary_subcategory(self, message, data):
         category_name = data.get('category_name')
         subcategories = data.get('subcategories')
+        
+        try:
+            cat_result = name_to_id(TrackerCategory, category_name)
+            category_id = cat_result.id if hasattr(cat_result, 'id') else cat_result
+        except NameError as err_msg:
+            return None, None, err_msg, []
+
         if subcategories is None:
             from cogs.LifeTracker.ui.Button.AddSubCategoryBtn import AddSubCategoryBtn
             view = ActionHandler.get_button_view(AddSubCategoryBtn(self.bot, category_name=category_name))
             return None, view, "", []
 
         subcats_list = [s.strip() for s in subcategories if s.strip()] if subcategories else []
-        success, error_msg = LifeTrackerManager.add_subcategory(category_name=category_name, subcat_names_list=subcats_list)
+        
+        # 🌟 修正這裡：使用 Keyword Arguments 傳遞參數
+        success, error_msg = LifeTrackerManager.add_subcategory(
+            category_id=category_id, 
+            subcat_names_list=subcats_list
+        )
+        
         if not success:
             return None, None, error_msg, []
+            
         from cogs.LifeTracker.ui.View.ManageSubcatView import ManageSubcatView
-
-        embed, view = await ManageSubcatView.create_ui(self.bot, name_to_id(TrackerCategory, category_name))
+        embed, view = await ManageSubcatView.create_ui(self.bot, category_id)
         embed.title = "✅ 標籤新增成功！"
         embed.color = discord.Color.green()
         return embed, view, "", []
@@ -203,8 +368,13 @@ class ActionHandler:
         await asyncio.sleep(0)  
         category_name = data.get('category_name')
         subcategory_name = data.get('subcategory_name')
-        try: category_id = name_to_id(TrackerCategory, category_name)
-        except NameError as err_msg: return None, None, err_msg, []
+        
+        try: 
+            cat_result = name_to_id(TrackerCategory, category_name)
+            category_id = cat_result.id if hasattr(cat_result, 'id') else cat_result
+        except NameError as err_msg: 
+            return None, None, err_msg, []
+        
         if subcategory_name is None:
             from cogs.LifeTracker.ui.Button import ToggleDeleteBtn
             _, subcats_info = LifeTrackerManager.get_category_details(category_id)
@@ -212,16 +382,23 @@ class ActionHandler:
                 return None, None, f"目前 {category_name} 沒有任何標籤喔！", []
             view = ActionHandler.get_button_view(ToggleDeleteBtn(self.bot, category_id, subcats_info))
             return None, view, "", []
-        suc = LifeTrackerManager.delete_subcategory(subcategory_name)
+            
+        suc = LifeTrackerManager.delete_subcategory(subcat_name=subcategory_name)
+        
         if suc:
-            return None, None, f"從 {category_name} 刪除 {subcategory_name} 成功", []
-        return None, None, f"從 {category_name} 刪除 {subcategory_name} 失敗。\n{subcategory_name} 可能不存在。", []
+            return None, None, f"✅ 從 {category_name} 刪除 {subcategory_name} 成功", []
+        return None, None, f"❌ 從 {category_name} 刪除 {subcategory_name} 失敗。\n{subcategory_name} 可能不存在。", []
         
     async def _handle_modify_diary_subcategory_empty(self, message, data):
         await asyncio.sleep(0)
         category_name = data.get('category_name')
-        try: category_id = name_to_id(TrackerCategory, category_name)
-        except NameError as err_msg: return None, None, err_msg, []
+        
+        try: 
+            cat_result = name_to_id(TrackerCategory, category_name)
+            category_id = cat_result.id if hasattr(cat_result, 'id') else cat_result
+        except NameError as err_msg: 
+            return None, None, err_msg, []
+        
         _, subcats_info = LifeTrackerManager.get_category_details(category_id)
         if not subcats_info:
             return None, None, f"目前 {category_name} 沒有任何標籤喔！", []
@@ -233,18 +410,24 @@ class ActionHandler:
         category_name = data.get('category_name')
         subcategory_name = data.get('subcategory_name')
         from database.db import SessionLocal
-        with SessionLocal as db:
+        
+        with SessionLocal() as db:
             try:
-                category_id = name_to_id(TrackerCategory, category_name, db=db)
-                subcat_id = name_to_id(TrackerSubCategory, subcategory_name, db=db)
-            except NameError as err_msg: return None, None, err_msg, []
+                cat_result = name_to_id(TrackerCategory, category_name, db=db)
+                category_id = cat_result.id if hasattr(cat_result, 'id') else cat_result
+                
+                subcat_result = name_to_id(TrackerSubCategory, subcategory_name, db=db)
+                subcat_id = subcat_result.id if hasattr(subcat_result, 'id') else subcat_result
+            except NameError as err_msg: 
+                return None, None, err_msg, []
         
         new_subcategory_name = data.get('new_subcategory_name')
         success, error_msg = LifeTrackerManager.update_subcategory_name(category_id, subcat_id, new_subcategory_name)
         if not success:
             return None, None, error_msg, []
+            
         from cogs.LifeTracker.ui.View.ManageSubcatView import ManageSubcatView
-        embed, view = await ManageSubcatView.create_ui(self.bot, self.category_id)
+        embed, view = await ManageSubcatView.create_ui(self.bot, category_id)
         embed.title = "✅ 標籤名稱已更新"
         embed.color = discord.Color.green()
         return embed, view, "", []
@@ -352,9 +535,13 @@ class ActionHandler:
         return embed, view, content, []
 
     async def _handle_view_gmail_category(self, message, data):
+        categories = EmailDatabaseManager.get_user_categories(message.author.id)
+        name_list = [c["name"] for c in categories]
+        return None, None, ActionHandler.list_text_format(" Gmail 分類", name_list), []
+    
+    async def _handle_view_gmail_category_content(self, message, data):
         await asyncio.sleep(0)
         category_name = data.get("category_name")
-        from cogs.Gmail.utils import EmailDatabaseManager
         categories = EmailDatabaseManager.get_user_categories(message.author.id)
         category_id = [c['id']for c in categories if c['name']==category_name]
         if not category_id:
@@ -474,3 +661,9 @@ class ActionHandler:
         view = discord.ui.View(timeout=60)
         view.add_item(button)
         return view
+    
+    @staticmethod
+    def list_text_format(cat_name, list, indent=0):
+        if not indent and not list:
+            return f"目前的{cat_name}內是空的。"
+        return f"目前的{cat_name}有：\n" + "\n".join(f'{" "*2*indent}- {x}' for x in list)

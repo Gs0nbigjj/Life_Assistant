@@ -35,10 +35,10 @@ class VoiceSensorCog(commands.Cog):
             try:
                 audio_data = await voice_file.read()
 
-                try:
+                '''try:
                     await message.delete()
                 except discord.HTTPException:
-                    pass
+                    pass'''
                 # 👉 語音轉文字
                 recognized_text = stt_whisper(audio_data)
 
@@ -68,10 +68,7 @@ class VoiceSensorCog(commands.Cog):
     async def process_text(self, text: str, message, processing_msg):
         # 1️⃣ 呼叫 AI
         mem = get_mem(message.author.id, message.author.name)
-        result = await AiAnalyzer.parse_ui_action(text, mem.memory_text if mem else None)
-        actions = result.get("actions", [])
-        
-        if not actions:
-            return await processing_msg.edit(content="❌ 無法解析操作")
-
-        await self.action_handler.handle_actions(message, processing_msg, actions)
+        # result = await AiAnalyzer.parse_ui_action(text, mem.memory_text if mem else None)
+        # result = await self.action_handler.enrich_actions_context(message,text,result,mem.memory_text if mem else None)
+        result = await self.action_handler.enrich_actions_context(message,text,"",mem.memory_text if mem else None, ALL=True)
+        await self.action_handler.handle_actions(message, processing_msg, result)

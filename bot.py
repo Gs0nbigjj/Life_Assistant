@@ -7,7 +7,7 @@ import datetime
 from database.db import init_db, SessionLocal
 from database.models import BotSettings
 from database.db_utils import get_botsettings
-from config import COGS_DIR, DISCORD_BOT_TOKEN, RENDER, TW_TZ
+from config import TW_TZ
 
 from config import COGS_DIR, DISCORD_BOT_TOKEN, RENDER
 
