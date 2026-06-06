@@ -59,23 +59,23 @@ class ActionHandler:
                 ]:
                     needs_parts['Stock'] = True
 
-        if needs_parts.get("Stock") or ALL:
+        if ALL or needs_parts.get("Stock"):
             stocks = StockManager.get_user_stocks(message.author.id)
             stock_details = [f'name:{s.stock_name} code/symbol{s.stock_symbol}:' for s in stocks]
             more_content_parts.append(ActionHandler.list_text_format("目前股票監控", stock_details, indent=1))
 
-        if needs_parts.get("Gmail") or ALL:
+        if ALL or needs_parts.get("Gmail"):
             categories = EmailDatabaseManager.get_user_categories(message.author.id)
             names = [c["name"] for c in categories]
             more_content_parts.append(ActionHandler.list_text_format(" Gmail 分類", names))
         
-        if needs_parts.get("LifeTracker_del_cat") or ALL:
+        if ALL or needs_parts.get("LifeTracker_del_cat"):
             cats = LifeTrackerManager.get_deletable_categories(user_id=message.author.id)
             names = [c.name for c in cats]
             more_content_parts.append(ActionHandler.list_text_format("生活日記可刪除主分類", names))
         
         # only trigger one
-        if needs_parts.get("LifeTracker_subcat_field") or ALL:
+        if ALL or needs_parts.get("LifeTracker_subcat_field"):
             texts = []
             cats = LifeTrackerManager.get_user_categories(user_id=message.author.id)
             ids = [c.id for c in cats]
