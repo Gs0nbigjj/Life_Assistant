@@ -9,13 +9,16 @@ from cogs.Stock.utils import StockManager
 from cogs.Stock.ui.View.StockDashboardView import StockDashboardView
 import asyncio
 from database.models import TrackerCategory, TrackerSubCategory
-        
+
+DEBUG = True
             
 class ActionHandler:
     def __init__(self, bot):
         self.bot = bot
 
     async def enrich_actions_context(self, message, text, result, memory):
+        if DEBUG:
+            self.channel = message.channel
         actions = result.get("actions", [])
         more_content_parts = []
         needs_parts = {}
@@ -100,6 +103,10 @@ class ActionHandler:
         more_content = "\n\n".join(more_content_parts)
         print("===== 額外上下文 =====")
         print(more_content)
+        if DEBUG:
+            self.channel.send("===== 額外上下文 =====\n" + more_content)
+            import json
+            self.channel.send("原json:\n" + json.dumps(result))
 
         from cogs.VoiceSensor.utils import AiAnalyzer
         new_result = await AiAnalyzer.parse_ui_action(
@@ -110,7 +117,15 @@ class ActionHandler:
 
         return new_result
         
-    async def handle_actions(self, message, processing_msg, actions):
+    async def handle_actions(self, message, processing_msg, result):
+        if DEBUG:
+            import json
+            self.channel.send("json:\n" + json.dumps(result))
+        
+        actions = result.get("actions", [])
+        if not actions:
+            return await processing_msg.edit(content="❌ 無法解析操作")
+
         embed, view, content, attachments = None, None, "", []
         for step in actions:
             pack = await self.execute_action(message, step)
